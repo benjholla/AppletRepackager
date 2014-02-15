@@ -1,7 +1,18 @@
-package repackager;
+
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Locale;
+
+import javax.tools.Diagnostic;
+import javax.tools.DiagnosticCollector;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 
 public class AppletRepackager {
 
@@ -20,9 +31,11 @@ public class AppletRepackager {
 		payloads.add("TestPayload");
 		String targetClass = "Main";
 		String wrapperName = "Wrapper";
-		File outputFile = new File(wrapperName + ".java");
-		generateWrapper(targetClass, wrapperName, payloads, outputFile);
-		System.out.println(outputFile);
+		File sourceFile = new File(wrapperName + ".java");
+		generateWrapper(targetClass, wrapperName, payloads, sourceFile);
+//		File classFile = compileClass(sourceFile, payloads);
+		
+//		System.out.println(classFile);
 	}
 	
 	/*
@@ -57,12 +70,30 @@ public class AppletRepackager {
 		
 	}
 	
+	private static void generatePayloadInterface(File outputFile) throws Exception {
+		FileWriter fw = new FileWriter(outputFile);
+		fw.write("import java.awt.Graphics;");
+		fw.write("public interface Payload {");
+		fw.write("	public void preInitPayload();");
+		fw.write("	public void postInitPayload();");
+		fw.write("	public void preStartPayload();");
+		fw.write("	public void postStartPayload();");
+		fw.write("	public void prePaintPayload(Graphics g);");
+		fw.write("	public void postPaintPayload(Graphics g);");
+		fw.write("	public void preStopPayload();");
+		fw.write("	public void postStopPayload();");
+		fw.write("	public void preDestroyPayload();");
+		fw.write("	public void postDestroyPayload();");
+		fw.write("}");
+		fw.close();
+	}
+	
 	private static void generateWrapper(String targetClass, String wrapperName, ArrayList<String> payloads, File outputFile) throws Exception {
 		FileWriter fw = new FileWriter(outputFile);
 		
 		fw.write("import java.applet.Applet;\n");
 		fw.write("import java.awt.Graphics;\n");
-		fw.write("import repackager.Payload;\n");
+		fw.write("import Payload;\n");
 		fw.write("\n");
 		fw.write("public class " + wrapperName + " extends Applet {\n");
 		fw.write("\n");
@@ -148,8 +179,34 @@ public class AppletRepackager {
 		return Character.toLowerCase(className.charAt(0)) + className.substring(1);
 	}
 	
-	private static File compileClass(File sourceFile){
-		return null;
+//	private static File compileClass(File sourceFile){
+//		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+//		if(compiler.run(null, null, null, sourceFile.getPath()) == 0){
+//			
+//		} else {
+//			throw new RuntimeException("Compile Error");
+//		}
+//		return new File(sourceFile.getAbsolutePath().replace(".java", ".class"));
+//	}
+	
+	private static ArrayList<File> compileSourceFiles(ArrayList<File> sourceFiles) throws IOException {
+		JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
+		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
+		StandardJavaFileManager fileManager = javaCompiler.getStandardFileManager(diagnostics, Locale.ENGLISH, Charset.forName("UTF-8"));
+		Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(sourceFiles);
+		javaCompiler.getTask(null, fileManager, diagnostics, null, null, compilationUnits).call();
+		    
+		for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
+			System.out.format("Error on line %d in %d%n", diagnostic.getLineNumber(), diagnostic.getSource().toString());
+		}        
+		 
+		fileManager.close();
+		
+		ArrayList<File> classFiles = new ArrayList<File>();
+		for(File sourceFile : sourceFiles){
+			classFiles.add(new File(sourceFile.getAbsolutePath().replace(".java", ".class")));
+		}
+		return classFiles;
 	}
 	
 	private static void addClassFileToJar(File classFile, String path){

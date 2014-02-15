@@ -1,5 +1,3 @@
-package repackager;
-
 import java.awt.Graphics;
 
 /**
