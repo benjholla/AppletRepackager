@@ -4,7 +4,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Locale;
 
 import javax.tools.Diagnostic;
@@ -36,38 +35,6 @@ public class AppletRepackager {
 //		File classFile = compileClass(sourceFile, payloads);
 		
 //		System.out.println(classFile);
-	}
-	
-	/*
-	 * From: http://docs.oracle.com/javase/7/docs/technotes/tools/windows/jarsigner.html
-	 * When jarsigner is used to sign a JAR file, the output signed JAR file is exactly the 
-	 * same as the input JAR file, except that it has two additional files placed in the 
-	 * META-INF directory: a signature file, with a .SF extension, and a signature block 
-	 * file, with a .DSA, .RSA, or .EC extension.
-	 * 
-	 * The method deletes the jarsigner signature file and the signature block files.
-	 */
-	private static void unsign(File extractedJarDirectory){
-		File metaInfDirectory = new File(extractedJarDirectory.getAbsolutePath() + File.separatorChar + META_INF);
-		File[] files = metaInfDirectory.listFiles();
-		if(files != null){
-			for(File file : files){
-				if(file.getName().endsWith(".SF") 
-					|| file.getName().endsWith(".DSA") 
-					|| file.getName().endsWith(".RSA") 
-					|| file.getName().endsWith(".EC")){
-					file.delete();
-				}
-			}
-		}
-	}
-	
-	private static void rebuildManifest(File extractedJarDirectory){
-		// META-INF/MANIFEST.MF
-	}
-	
-	private static void signJar(File jarFile){
-		
 	}
 	
 	private static void generatePayloadInterface(File outputFile) throws Exception {
@@ -207,10 +174,6 @@ public class AppletRepackager {
 			classFiles.add(new File(sourceFile.getAbsolutePath().replace(".java", ".class")));
 		}
 		return classFiles;
-	}
-	
-	private static void addClassFileToJar(File classFile, String path){
-		
 	}
 
 }
