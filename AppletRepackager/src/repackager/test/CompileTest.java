@@ -1,18 +1,14 @@
+package repackager.test;
+
 import java.io.File;
 import java.util.ArrayList;
 
-public class Test {
+import repackager.AppletRepackager;
+import repackager.PayloadEntry;
 
-//	public static void main(String[] args) throws Exception {
-//		File originalJar = new File("C:\\Users\\Ben\\Desktop\\test.jar");
-//		File extractedJarDirectory = new File("C:\\Users\\Ben\\Desktop\\test");
-//		File repackedJar = new File("C:\\Users\\Ben\\Desktop\\test2.jar");
-//		JarUtils.unjar(originalJar, extractedJarDirectory);
-//		JarUtils.purgeMetaInf(extractedJarDirectory);
-//		JarUtils.jar(extractedJarDirectory, repackedJar, JarUtils.generateEmptyManifest());
-//	}
-	
-	// some test code
+public class CompileTest {
+
+	// compilation test
 	public static void main(String[] args) throws Exception {
 		File workingDirectory = new File("C:\\Users\\Ben\\Desktop\\source\\");
 		File sourceDirectory = new File("C:\\Users\\Ben\\Desktop\\source\\sneaky\\hobbits\\");
@@ -23,21 +19,20 @@ public class Test {
 		String wrapperPackageName = "sneaky.hobbits";
 		
 		File payloadInterfaceFile = new File(sourceDirectory.getAbsolutePath() + File.separatorChar + "Payload.java");
-		AppletRepackager.PayloadEntry payloadInterfaceEntry = new AppletRepackager.PayloadEntry(payloadInterfaceFile, workingDirectory);
+		PayloadEntry payloadInterfaceEntry = new PayloadEntry(payloadInterfaceFile, workingDirectory);
 		
 		
 		File testPayloadFile = new File(sourceDirectory.getAbsolutePath() + File.separatorChar + "TestPayload.java");
-		AppletRepackager.PayloadEntry testPayloadEntry = new AppletRepackager.PayloadEntry(testPayloadFile, workingDirectory);
+		PayloadEntry testPayloadEntry = new PayloadEntry(testPayloadFile, workingDirectory);
 		testPayloadEntry.setPackageName("");
 		
-		ArrayList<AppletRepackager.PayloadEntry> payloadEntries = new ArrayList<AppletRepackager.PayloadEntry>();
+		ArrayList<PayloadEntry> payloadEntries = new ArrayList<PayloadEntry>();
 		payloadEntries.add(testPayloadEntry);
 		
 		File wrapperFile = new File(sourceDirectory.getAbsolutePath() + File.separatorChar + wrapperClassName + ".java");
 		
 		AppletRepackager.generatePayloadInterface(payloadInterfaceEntry, payloadInterfaceFile);
 		
-		// String targetClass, String wrapperName, PayloadEntry payloadInterface, ArrayList<PayloadEntry> payloads, File outputFile
 		AppletRepackager.generateWrapper(wrapperClassName, wrapperPackageName, qualifiedTargetClassName, payloadInterfaceEntry, payloadEntries, wrapperFile);
 		
 		ArrayList<File> sourceFiles = new ArrayList<File>();
@@ -48,5 +43,5 @@ public class Test {
 		
 		System.out.println(classFiles.toString());
 	}
-
+	
 }

@@ -1,11 +1,12 @@
+package repackager;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.regex.Matcher;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -17,74 +18,67 @@ import javax.tools.ToolProvider;
 public class AppletRepackager {
 
 	public static final String META_INF = "META-INF";
-	
-	public static class PayloadEntry {
-		private String packageName;
-		private String className;
-		private String variableName;
-		private File payloadFile;
+
+	public static void repackageJar(String jdkPath, String code, String newCode, File archive, File newArchive, File... payloads) throws Exception {
+		// extract jar and purge meta-inf data
+		File extractedJarDirectory = new File(archive.getAbsolutePath().replace(".jar", ""));
+		JarUtils.unjar(archive, extractedJarDirectory);
+		JarUtils.purgeMetaInf(extractedJarDirectory); // unsign and clear manifest
+
+		// generate the wrapper and payloads
+		String qualifiedTargetClassName = code;
 		
-		public PayloadEntry(File payloadFile, File baseDirectory) throws IOException {
-			this.payloadFile = payloadFile;
-			this.packageName = getPayloadPackage(payloadFile, baseDirectory);
-			this.className = getPayloadClassName(payloadFile);
-			this.variableName = getPayloadVariableName(this.className);
+		String wrapperClassName = "";
+		String wrapperPackageName = "";
+		if(newCode.contains(".")){
+			wrapperClassName = newCode.substring(newCode.lastIndexOf(".")+1, newCode.length());
+			wrapperPackageName = newCode.substring(0, newCode.indexOf("."));
+		} else {
+			wrapperClassName = newCode;
+			wrapperPackageName = "";
 		}
 		
-		public void setPackageName(String packageName){
-			this.packageName = packageName;
-		}
+		// generate the payload interface
+		File payloadInterfaceFile = new File(extractedJarDirectory.getAbsolutePath() + File.separatorChar + "Payload.java");
+		PayloadEntry payloadInterfaceEntry = new PayloadEntry(payloadInterfaceFile, extractedJarDirectory);
+		AppletRepackager.generatePayloadInterface(payloadInterfaceEntry, payloadInterfaceFile);
 		
-		public String getPackageName() {
-			return packageName;
+		// copy over the test payload and add it to the ordered list of payloads to execute
+		ArrayList<PayloadEntry> payloadEntries = new ArrayList<PayloadEntry>();
+		for(File payloadSource : payloads){
+			File payloadFile = new File(extractedJarDirectory.getAbsolutePath() + File.separatorChar + payloadSource.getName());
+			Files.copy(payloadSource.toPath(), payloadFile.toPath());
+			PayloadEntry payloadEntry = new PayloadEntry(payloadFile, extractedJarDirectory);
+			payloadEntries.add(payloadEntry);
 		}
 
-		public String getClassName() {
-			return className;
-		}
-		
-		public String getQualifiedClassName(){
-			if(packageName.equals("")){
-				return className;
-			} else {
-				return packageName + "." + className;
-			}
-		}
+		// generate the wrapper
+		File wrapperFile = new File(extractedJarDirectory.getAbsolutePath() + File.separatorChar + wrapperClassName + ".java");
+		AppletRepackager.generateWrapper(wrapperClassName, wrapperPackageName, qualifiedTargetClassName, payloadInterfaceEntry, payloadEntries, wrapperFile);
 
-		public String getVariableName() {
-			return variableName;
+		// compile the source files
+		ArrayList<File> sourceFiles = new ArrayList<File>();
+		sourceFiles.add(payloadInterfaceFile);
+		for(PayloadEntry payloadEntry : payloadEntries){
+			sourceFiles.add(payloadEntry.getSourceFile());
 		}
-
-		public File getPayloadFile() {
-			return payloadFile;
+		sourceFiles.add(wrapperFile);
+		AppletRepackager.compileSourceFiles(sourceFiles, jdkPath);
+		
+		// clean up the source files
+		payloadInterfaceEntry.getSourceFile().delete();
+		wrapperFile.delete();
+		for(PayloadEntry payload : payloadEntries){
+			payload.getSourceFile().delete();
 		}
 		
-		private String getPayloadPackage(File payload, File workingDirectory) throws IOException {
-			String result = "";
-			if(!payload.getAbsolutePath().equals(workingDirectory.getAbsolutePath())){
-				String payloadCanonicalPath = payload.getCanonicalPath();
-				int relStart = workingDirectory.getCanonicalPath().length() + 1;
-				int relEnd = payload.getCanonicalPath().length();
-				String packageName = payloadCanonicalPath.substring(relStart,relEnd);
-				if(!packageName.equals(payload.getName())){
-					packageName = packageName.substring(0, packageName.lastIndexOf(payload.getName()));
-					if(packageName.endsWith("" + File.separatorChar)){
-						packageName = packageName.substring(0, packageName.length()-1);
-					}
-					packageName = packageName.replaceAll(Matcher.quoteReplacement("" + File.separatorChar), Matcher.quoteReplacement("."));
-					result = packageName;
-				}
-			}
-			return result;
-		}
+		// just lazily make a new manifest 
+		// (alternatively we could have cloned and edited the original manifest before purging)
+		// jar is unsigned
+		JarUtils.jar(extractedJarDirectory, newArchive, JarUtils.generateEmptyManifest());
 		
-		private String getPayloadClassName(File file){
-			return file.getName().substring(0, file.getName().lastIndexOf(".java"));
-		}
-		
-		private String getPayloadVariableName(String className){
-			return Character.toLowerCase(className.charAt(0)) + className.substring(1);
-		}
+		// clean up the temp directory
+		JarUtils.delete(extractedJarDirectory);
 	}
 	
 	public static void generatePayloadInterface(PayloadEntry payloadInterface, File outputFile) throws Exception {
@@ -215,7 +209,7 @@ public class AppletRepackager {
 		JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
 		
 		if(javaCompiler == null){
-			throw new RuntimeException("Could not find Java compiler, JDK may not be installed or classpath needs to be adjusted.");
+			throw new RuntimeException("Could not find Java compiler.");
 		}
 		
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();

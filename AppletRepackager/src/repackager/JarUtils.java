@@ -1,3 +1,4 @@
+package repackager;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -191,7 +192,7 @@ public class JarUtils {
 	}
 	
 	// recursively deletes a file or directory
-	private static void delete(File f) throws IOException {
+	public static void delete(File f) throws IOException {
 		if (f.isDirectory()) {
 			for (File c : f.listFiles()) {
 				delete(c);
