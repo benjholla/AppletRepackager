@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.regex.Matcher;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -17,50 +18,94 @@ public class AppletRepackager {
 
 	public static final String META_INF = "META-INF";
 	
-	// some test code
-	public static void main(String[] args) throws Exception {
-//		File appletJarFile = new File("test.jar");
-//		File extractedJarDirectory = ZipUtils.extractJar(appletJarFile);
-//		File outputAppletJarFile = new File(appletJarFile.getAbsolutePath().replace(".jar", "") + "_repacked.jar");
-//		unsign(extractedJarDirectory);
-//		ZipUtils.compressJar(extractedJarDirectory, outputAppletJarFile);
-//		System.out.println("Finished.");
+	public static class PayloadEntry {
+		private String packageName;
+		private String className;
+		private String variableName;
+		private File payloadFile;
 		
-		ArrayList<String> payloads = new ArrayList<String>();
-		payloads.add("TestPayload");
-		String targetClass = "Main";
-		String wrapperName = "Wrapper";
-		File sourceFile = new File(wrapperName + ".java");
-		generateWrapper(targetClass, wrapperName, payloads, sourceFile);
-//		File classFile = compileClass(sourceFile, payloads);
+		public PayloadEntry(File payloadFile, File baseDirectory) throws IOException {
+			this.payloadFile = payloadFile;
+			this.packageName = getPayloadPackage(payloadFile, baseDirectory);
+			this.className = getPayloadClassName(payloadFile);
+			this.variableName = getPayloadVariableName(this.className);
+		}
 		
-//		System.out.println(classFile);
+		public String getPackageName() {
+			return packageName;
+		}
+
+		public String getClassName() {
+			return className;
+		}
+
+		public String getVariableName() {
+			return variableName;
+		}
+
+		public File getPayloadFile() {
+			return payloadFile;
+		}
+		
+		private String getPayloadPackage(File payload, File workingDirectory) throws IOException {
+			String result = "";
+			if(!payload.getAbsolutePath().equals(workingDirectory.getAbsolutePath())){
+				String payloadCanonicalPath = payload.getCanonicalPath();
+				int relStart = workingDirectory.getCanonicalPath().length() + 1;
+				int relEnd = payload.getCanonicalPath().length();
+				String packageName = payloadCanonicalPath.substring(relStart,relEnd);
+				if(!packageName.equals(payload.getName())){
+					packageName = packageName.substring(0, packageName.lastIndexOf(payload.getName()));
+					packageName = packageName.replaceAll(Matcher.quoteReplacement("" + File.separatorChar), Matcher.quoteReplacement("."));
+					result = packageName;
+				}
+			}
+			return result;
+		}
+		
+		private String getPayloadClassName(File file){
+			return file.getName().substring(0, file.getName().lastIndexOf(".java"));
+		}
+		
+		private String getPayloadVariableName(String className){
+			return Character.toLowerCase(className.charAt(0)) + className.substring(1);
+		}
 	}
 	
-	private static void generatePayloadInterface(File outputFile) throws Exception {
+	public static void generatePayloadInterface(File outputFile) throws Exception {
 		FileWriter fw = new FileWriter(outputFile);
-		fw.write("import java.awt.Graphics;");
-		fw.write("public interface Payload {");
-		fw.write("	public void preInitPayload();");
-		fw.write("	public void postInitPayload();");
-		fw.write("	public void preStartPayload();");
-		fw.write("	public void postStartPayload();");
-		fw.write("	public void prePaintPayload(Graphics g);");
-		fw.write("	public void postPaintPayload(Graphics g);");
-		fw.write("	public void preStopPayload();");
-		fw.write("	public void postStopPayload();");
-		fw.write("	public void preDestroyPayload();");
-		fw.write("	public void postDestroyPayload();");
-		fw.write("}");
+		fw.write("import java.awt.Graphics;\n");
+		fw.write("public interface Payload {\n");
+		fw.write("	public void preInitPayload();\n");
+		fw.write("	public void postInitPayload();\n");
+		fw.write("	public void preStartPayload();\n");
+		fw.write("	public void postStartPayload();\n");
+		fw.write("	public void prePaintPayload(Graphics g);\n");
+		fw.write("	public void postPaintPayload(Graphics g);\n");
+		fw.write("	public void preStopPayload();\n");
+		fw.write("	public void postStopPayload();\n");
+		fw.write("	public void preDestroyPayload();\n");
+		fw.write("	public void postDestroyPayload();\n");
+		fw.write("}\n");
 		fw.close();
 	}
-	
-	private static void generateWrapper(String targetClass, String wrapperName, ArrayList<String> payloads, File outputFile) throws Exception {
+
+	public static void generateWrapper(String targetClass, String wrapperName, PayloadEntry payloadInterface, ArrayList<PayloadEntry> payloads, File outputFile) throws Exception {
 		FileWriter fw = new FileWriter(outputFile);
 		
 		fw.write("import java.applet.Applet;\n");
 		fw.write("import java.awt.Graphics;\n");
-		fw.write("import Payload;\n");
+		
+		if(!payloadInterface.getPackageName().equals("")){
+			fw.write("import " + payloadInterface.getPackageName() + "." + payloadInterface.getClassName() + ";\n");
+		}
+
+		for(PayloadEntry payload : payloads){
+			if(!payload.getPackageName().equals("")){
+				fw.write("import " + payload.getPackageName() + "." + payload.getClassName() + ";\n");
+			}
+		}
+		
 		fw.write("\n");
 		fw.write("public class " + wrapperName + " extends Applet {\n");
 		fw.write("\n");
@@ -68,72 +113,72 @@ public class AppletRepackager {
 		fw.write("\n");
 		fw.write("	Applet applet = null;\n");
 		fw.write("\n");
-		for(String payload : payloads){
-			fw.write("	" + "Payload " + classToVariableName(payload) + " = null;\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("	" + "Payload " + payload.getVariableName() + " = null;\n");
 		}
 		fw.write("\n");
 		fw.write("	@Override\n");
 		fw.write("	public void init(){\n");
 		fw.write("		try {\n");
 		fw.write("			Class<?> c = Class.forName(\"" + targetClass + "\");\n");
-		fw.write("				this.applet = (Applet) c.newInstance();\n");
+		fw.write("			this.applet = (Applet) c.newInstance();\n");
 		fw.write("		} catch (Exception e){}\n");
-		for(String payload : payloads){
+		for(PayloadEntry payload : payloads){
 			fw.write("		try {\n");
 			fw.write("			Class<?> c = Class.forName(\"" + payload + "\");\n");
-			fw.write("				" + classToVariableName(payload) + " = (Payload) c.newInstance();\n");
+			fw.write("			" + payload.getVariableName() + " = (Payload) c.newInstance();\n");
 			fw.write("		} catch (Exception e){}\n");
 		}
-		for(String payload : payloads){
-			fw.write("		" + classToVariableName(payload) + ".preInitPayload();\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("		" + payload.getVariableName() + ".preInitPayload();\n");
 		}
 		fw.write("		this.applet.init();\n");
-		for(String payload : payloads){
-			fw.write("		" + classToVariableName(payload) + ".postInitPayload();\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("		" + payload.getVariableName() + ".postInitPayload();\n");
 		}
 		fw.write("	}\n");
 		fw.write("\n");
 		fw.write("	@Override\n");
 		fw.write("	public void start(){\n");
-		for(String payload : payloads){
-			fw.write("		" + classToVariableName(payload) + ".preStartPayload();\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("		" + payload.getVariableName() + ".preStartPayload();\n");
 		}
 		fw.write("		this.applet.start();\n");
-		for(String payload : payloads){
-			fw.write("		" + classToVariableName(payload) + ".postStartPayload();\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("		" + payload.getVariableName() + ".postStartPayload();\n");
 		}
 		fw.write("	}\n");
 		fw.write("\n");
 		fw.write("	@Override\n");
 		fw.write("	public void paint(Graphics g){\n");
-		for(String payload : payloads){
-			fw.write("		" + classToVariableName(payload) + ".prePaintPayload(g);\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("		" + payload.getVariableName() + ".prePaintPayload(g);\n");
 		}
 		fw.write("		this.applet.paint(g);\n");
-		for(String payload : payloads){
-			fw.write("		" + classToVariableName(payload) + ".postPaintPayload(g);\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("		" + payload.getVariableName() + ".postPaintPayload(g);\n");
 		}
 		fw.write("	}\n");
 		fw.write("\n");
 		fw.write("	@Override\n");
 		fw.write("	public void stop(){\n");
-		for(String payload : payloads){
-			fw.write("		" + classToVariableName(payload) + ".preStopPayload();\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("		" + payload.getVariableName() + ".preStopPayload();\n");
 		}
 		fw.write("		this.applet.stop();\n");
-		for(String payload : payloads){
-			fw.write("		" + classToVariableName(payload) + ".postStopPayload();\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("		" + payload.getVariableName() + ".postStopPayload();\n");
 		}
 		fw.write("	}\n");
 		fw.write("\n");
 		fw.write("	@Override\n");
 		fw.write("	public void destroy(){\n");
-		for(String payload : payloads){
-			fw.write("		" + classToVariableName(payload) + ".preDestroyPayload();\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("		" + payload.getVariableName() + ".preDestroyPayload();\n");
 		}
 		fw.write("		this.applet.destroy();\n");
-		for(String payload : payloads){
-			fw.write("		" + classToVariableName(payload) + ".postDestroyPayload();\n");
+		for(PayloadEntry payload : payloads){
+			fw.write("		" + payload.getVariableName() + ".postDestroyPayload();\n");
 		}
 		fw.write("	}\n");
 		fw.write("\n");
@@ -142,29 +187,20 @@ public class AppletRepackager {
 		fw.close();
 	}
 	
-	private static String classToVariableName(String className){
-		return Character.toLowerCase(className.charAt(0)) + className.substring(1);
-	}
-	
-//	private static File compileClass(File sourceFile){
-//		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-//		if(compiler.run(null, null, null, sourceFile.getPath()) == 0){
-//			
-//		} else {
-//			throw new RuntimeException("Compile Error");
-//		}
-//		return new File(sourceFile.getAbsolutePath().replace(".java", ".class"));
-//	}
-	
-	private static ArrayList<File> compileSourceFiles(ArrayList<File> sourceFiles) throws IOException {
+	public static ArrayList<File> compileSourceFiles(ArrayList<File> sourceFiles) throws IOException {
 		JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
+		
+		if(javaCompiler == null){
+			throw new RuntimeException("Could not find Java compiler, JDK may not be installed or classpath needs to be adjusted.");
+		}
+		
 		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<JavaFileObject>();
 		StandardJavaFileManager fileManager = javaCompiler.getStandardFileManager(diagnostics, Locale.ENGLISH, Charset.forName("UTF-8"));
 		Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(sourceFiles);
 		javaCompiler.getTask(null, fileManager, diagnostics, null, null, compilationUnits).call();
 		    
-		for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
-			System.out.format("Error on line %d in %d%n", diagnostic.getLineNumber(), diagnostic.getSource().toString());
+		for (Diagnostic<?> diagnostic : diagnostics.getDiagnostics()) {
+			System.err.format("Error on line %d in %d%n", diagnostic.getLineNumber(), diagnostic.getSource().toString());
 		}        
 		 
 		fileManager.close();

@@ -14,6 +14,46 @@ import java.util.jar.Manifest;
 public class JarUtils {
 
 	public static final String META_INF = "META-INF";
+
+	/**
+	 * Generates a Jar Manifest based on the given parameters
+	 * @return
+	 */
+	public static Manifest generateEmptyManifest(){
+		Manifest manifest = new Manifest();
+		manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+		return manifest;
+	}
+	
+	/**
+	 * Retrieves a Manifest object or creates an empty Manifest object 
+	 * if the Manifest is not found in the given Jar file
+	 * @param jarFile
+	 * @return
+	 * @throws IOException
+	 */
+	public static Manifest getManifest(File jarFile) throws IOException {
+		JarFile jar = new JarFile(jarFile);
+		String manifestPath = META_INF + "/MANIFEST.MF";
+		JarEntry jarEntry = jar.getJarEntry(manifestPath);
+		if (jarEntry != null) {
+			Enumeration<JarEntry> entries = jar.entries();
+			while (entries.hasMoreElements()) {
+				jarEntry = (JarEntry) entries.nextElement();
+				if (manifestPath.equalsIgnoreCase(jarEntry.getName())){
+					break;
+				} else {
+					jarEntry = null;
+				}
+			}
+		}
+		Manifest manifest = new Manifest();
+		if (jarEntry != null){
+			manifest.read(jar.getInputStream(jarEntry));
+		}
+		jar.close();
+		return manifest;
+	}
 	
 	/**
 	 * Extracts a Jar file
@@ -43,16 +83,6 @@ public class JarUtils {
 			is.close();
 		}
 		jar.close();
-	}
-
-	/**
-	 * Generates a Jar Manifest based on the given parameters
-	 * @return
-	 */
-	public static Manifest generateManifest(){
-		Manifest manifest = new Manifest();
-		manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-		return manifest;
 	}
 	
 	/**
@@ -116,10 +146,6 @@ public class JarUtils {
 			}
 		}
 	}
-
-	public static Manifest getManifest(File extractedJarPath){
-		return null;
-	}
 	
 	/**
 	 * From: http://docs.oracle.com/javase/7/docs/technotes/tools/windows/jarsigner.html
@@ -143,6 +169,11 @@ public class JarUtils {
 				}
 			}
 		}
+	}
+	
+	// TODO: finish implementing
+	public static void sign(File jarFile) throws IOException {
+
 	}
 	
 	/**
