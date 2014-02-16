@@ -31,12 +31,24 @@ public class AppletRepackager {
 			this.variableName = getPayloadVariableName(this.className);
 		}
 		
+		public void setPackageName(String packageName){
+			this.packageName = packageName;
+		}
+		
 		public String getPackageName() {
 			return packageName;
 		}
 
 		public String getClassName() {
 			return className;
+		}
+		
+		public String getQualifiedClassName(){
+			if(packageName.equals("")){
+				return className;
+			} else {
+				return packageName + "." + className;
+			}
 		}
 
 		public String getVariableName() {
@@ -56,6 +68,9 @@ public class AppletRepackager {
 				String packageName = payloadCanonicalPath.substring(relStart,relEnd);
 				if(!packageName.equals(payload.getName())){
 					packageName = packageName.substring(0, packageName.lastIndexOf(payload.getName()));
+					if(packageName.endsWith("" + File.separatorChar)){
+						packageName = packageName.substring(0, packageName.length()-1);
+					}
 					packageName = packageName.replaceAll(Matcher.quoteReplacement("" + File.separatorChar), Matcher.quoteReplacement("."));
 					result = packageName;
 				}
@@ -72,9 +87,12 @@ public class AppletRepackager {
 		}
 	}
 	
-	public static void generatePayloadInterface(File outputFile) throws Exception {
+	public static void generatePayloadInterface(PayloadEntry payloadInterface, File outputFile) throws Exception {
 		FileWriter fw = new FileWriter(outputFile);
-		fw.write("import java.awt.Graphics;\n");
+		if(!payloadInterface.getPackageName().equals("")){
+			fw.write("package " + payloadInterface.getPackageName() +";\n\n");
+		}
+		fw.write("import java.awt.Graphics;\n\n");
 		fw.write("public interface Payload {\n");
 		fw.write("	public void preInitPayload();\n");
 		fw.write("	public void postInitPayload();\n");
@@ -90,24 +108,28 @@ public class AppletRepackager {
 		fw.close();
 	}
 
-	public static void generateWrapper(String targetClass, String wrapperName, PayloadEntry payloadInterface, ArrayList<PayloadEntry> payloads, File outputFile) throws Exception {
+	public static void generateWrapper(String wrapperClassName, String wrapperPackageName, String qualifiedTargetClassName, PayloadEntry payloadInterface, ArrayList<PayloadEntry> payloads, File outputFile) throws Exception {
 		FileWriter fw = new FileWriter(outputFile);
+		
+		if(!wrapperPackageName.equals("")){
+			fw.write("package " + wrapperPackageName +";\n\n");
+		}
 		
 		fw.write("import java.applet.Applet;\n");
 		fw.write("import java.awt.Graphics;\n");
 		
-		if(!payloadInterface.getPackageName().equals("")){
-			fw.write("import " + payloadInterface.getPackageName() + "." + payloadInterface.getClassName() + ";\n");
+		if(!payloadInterface.getPackageName().equals("") && !payloadInterface.getPackageName().equals(wrapperPackageName)){
+			fw.write("import " + payloadInterface.getQualifiedClassName() + ";\n");
 		}
-
+		
 		for(PayloadEntry payload : payloads){
-			if(!payload.getPackageName().equals("")){
-				fw.write("import " + payload.getPackageName() + "." + payload.getClassName() + ";\n");
+			if(!payload.getPackageName().equals("") && !payload.getPackageName().equals(wrapperPackageName)){
+				fw.write("import " + payload.getQualifiedClassName() + ";\n");
 			}
 		}
 		
 		fw.write("\n");
-		fw.write("public class " + wrapperName + " extends Applet {\n");
+		fw.write("public class " + wrapperClassName + " extends Applet {\n");
 		fw.write("\n");
 		fw.write("	private static final long serialVersionUID = 1L;\n");
 		fw.write("\n");
@@ -120,12 +142,12 @@ public class AppletRepackager {
 		fw.write("	@Override\n");
 		fw.write("	public void init(){\n");
 		fw.write("		try {\n");
-		fw.write("			Class<?> c = Class.forName(\"" + targetClass + "\");\n");
+		fw.write("			Class<?> c = Class.forName(\"" + qualifiedTargetClassName + "\");\n");
 		fw.write("			this.applet = (Applet) c.newInstance();\n");
 		fw.write("		} catch (Exception e){}\n");
 		for(PayloadEntry payload : payloads){
 			fw.write("		try {\n");
-			fw.write("			Class<?> c = Class.forName(\"" + payload + "\");\n");
+			fw.write("			Class<?> c = Class.forName(\"" + payload.getQualifiedClassName() + "\");\n");
 			fw.write("			" + payload.getVariableName() + " = (Payload) c.newInstance();\n");
 			fw.write("		} catch (Exception e){}\n");
 		}
@@ -187,7 +209,9 @@ public class AppletRepackager {
 		fw.close();
 	}
 	
-	public static ArrayList<File> compileSourceFiles(ArrayList<File> sourceFiles) throws IOException {
+	public static ArrayList<File> compileSourceFiles(ArrayList<File> sourceFiles, String jdkPath) throws IOException {
+		System.setProperty("java.home", jdkPath);
+		
 		JavaCompiler javaCompiler = ToolProvider.getSystemJavaCompiler();
 		
 		if(javaCompiler == null){

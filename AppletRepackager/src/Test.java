@@ -14,35 +14,37 @@ public class Test {
 	
 	// some test code
 	public static void main(String[] args) throws Exception {
-		
-		System.setProperty("java.home", "C:\\Program Files\\Java\\jdk1.7.0_51");
-		
 		File workingDirectory = new File("C:\\Users\\Ben\\Desktop\\source\\");
+		File sourceDirectory = new File("C:\\Users\\Ben\\Desktop\\source\\sneaky\\hobbits\\");
 		
-		String targetClass = "Main";
-		String wrapperName = "Wrapper";
+		String qualifiedTargetClassName = "Main";
 		
-		File payloadInterfaceFile = new File(workingDirectory.getAbsolutePath() + File.separatorChar + "Payload.java");
+		String wrapperClassName = "Wrapper";
+		String wrapperPackageName = "sneaky.hobbits";
+		
+		File payloadInterfaceFile = new File(sourceDirectory.getAbsolutePath() + File.separatorChar + "Payload.java");
 		AppletRepackager.PayloadEntry payloadInterfaceEntry = new AppletRepackager.PayloadEntry(payloadInterfaceFile, workingDirectory);
 		
-		File testPayloadFile = new File(workingDirectory.getAbsolutePath() + File.separatorChar + "TestPayload.java");
+		
+		File testPayloadFile = new File(sourceDirectory.getAbsolutePath() + File.separatorChar + "TestPayload.java");
 		AppletRepackager.PayloadEntry testPayloadEntry = new AppletRepackager.PayloadEntry(testPayloadFile, workingDirectory);
+		testPayloadEntry.setPackageName("");
 		
 		ArrayList<AppletRepackager.PayloadEntry> payloadEntries = new ArrayList<AppletRepackager.PayloadEntry>();
 		payloadEntries.add(testPayloadEntry);
 		
-		File wrapperFile = new File(workingDirectory.getAbsolutePath() + File.separatorChar + wrapperName + ".java");
+		File wrapperFile = new File(sourceDirectory.getAbsolutePath() + File.separatorChar + wrapperClassName + ".java");
 		
-		AppletRepackager.generatePayloadInterface(payloadInterfaceFile);
+		AppletRepackager.generatePayloadInterface(payloadInterfaceEntry, payloadInterfaceFile);
 		
 		// String targetClass, String wrapperName, PayloadEntry payloadInterface, ArrayList<PayloadEntry> payloads, File outputFile
-		AppletRepackager.generateWrapper(targetClass, wrapperName, payloadInterfaceEntry, payloadEntries, wrapperFile);
+		AppletRepackager.generateWrapper(wrapperClassName, wrapperPackageName, qualifiedTargetClassName, payloadInterfaceEntry, payloadEntries, wrapperFile);
 		
 		ArrayList<File> sourceFiles = new ArrayList<File>();
 		sourceFiles.add(payloadInterfaceFile);
 		sourceFiles.add(testPayloadFile);
 		sourceFiles.add(wrapperFile);
-		ArrayList<File> classFiles = AppletRepackager.compileSourceFiles(sourceFiles);
+		ArrayList<File> classFiles = AppletRepackager.compileSourceFiles(sourceFiles, "C:\\Program Files\\Java\\jdk1.7.0_51");
 		
 		System.out.println(classFiles.toString());
 	}
