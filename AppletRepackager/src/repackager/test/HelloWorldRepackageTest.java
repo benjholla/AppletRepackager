@@ -12,7 +12,8 @@ public class HelloWorldRepackageTest {
 	public static void main(String[] args) throws Exception {
 		
 		// need to specify the path to your JDK install
-		String jdkPath = "C:\\Program Files\\Java\\jdk1.7.0_51";
+		//String jdkPath = "C:\\Program Files\\Java\\jdk1.7.0_51"; // windows
+		String jdkPath = "/Library/Java/JavaVirtualMachines/jdk1.7.0_45.jdk/Contents/Home"; // mac
 		
 		// this is the "code" attribute without the ".class". The ".class" appears to be optional anyway
 		String qualifiedTargetClassName = "HelloWorld";
@@ -22,11 +23,11 @@ public class HelloWorldRepackageTest {
 		String qualifiedWrapperName = wrapperPackageName.equals("") ? wrapperClassName : (wrapperPackageName + "." + wrapperClassName);
 		
 		// the original jar is the "archive" attribute
-		File originalJar = new File("C:\\Users\\Ben\\Desktop\\HelloWorld.jar");
+		File originalJar = new File("/Users/benjholla/Desktop/AppletRepackager/Test Applets/HelloWorld/HelloWorld/HelloWorld.jar");
 		File repackedJar = new File(originalJar.getAbsolutePath().replace(".jar", "_repackaged.jar"));
 		
 		// one or more payloads to insert (called in the order specified)
-		File testPayloadSource = new File("C:\\Users\\Ben\\Desktop\\source\\TestPayload.java");
+		File testPayloadSource = new File("/Users/benjholla/Desktop/AppletRepackager/Payloads/TestPayload.java");
 		
 		// repackage the archive
 		AppletRepackager.repackageJar(jdkPath, qualifiedTargetClassName, qualifiedWrapperName, originalJar, repackedJar, testPayloadSource);
