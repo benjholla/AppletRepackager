@@ -8,6 +8,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -21,18 +22,17 @@ import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-
-import repackager.Payload;
+import javax.swing.ScrollPaneConstants;
 
 public class AppletRepackagerGUI {
 
 	private JFrame frame;
-	private JTextField codeText;
-	private JTextField archiveText;
 	
 	private File inputAppletFile = null;
 	private File outputAppletFile = null;
@@ -74,7 +74,7 @@ public class AppletRepackagerGUI {
 	private void initialize() {
 		frame = new JFrame();
 		frame.setTitle("Applet Repackager");
-		frame.setBounds(100, 100, 650, 500);
+		frame.setBounds(100, 100, 650, 550);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] { 550, 0 };
@@ -95,12 +95,13 @@ public class AppletRepackagerGUI {
 		GridBagLayout appletPanelGrid = new GridBagLayout();
 
 		appletPanelGrid.columnWeights = new double[] { 0.0, 1.0 };
-		appletPanelGrid.rowWeights = new double[] { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0 };
+		appletPanelGrid.rowWeights = new double[] { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0 };
 		appletPanel.setLayout(appletPanelGrid);
 
 		final JTextArea appletHTMLTextArea = new JTextArea();
 		appletHTMLTextArea.setLineWrap(true);
 		JScrollPane appletHTMLScroll = new JScrollPane(appletHTMLTextArea);
+		appletHTMLScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		appletHTMLScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		GridBagConstraints appletHTMLScrollGrid = new GridBagConstraints();
 		appletHTMLScrollGrid.insets = new Insets(0, 0, 5, 0);
@@ -127,7 +128,7 @@ public class AppletRepackagerGUI {
 		final JLabel codeLabel = new JLabel("code: ");
 		parsedFieldsPanel.add(codeLabel);
 
-		codeText = new JTextField();
+		final JTextField codeText = new JTextField();
 		codeText.setEditable(false);
 		parsedFieldsPanel.add(codeText);
 		codeText.setColumns(14);
@@ -135,7 +136,7 @@ public class AppletRepackagerGUI {
 		final JLabel archiveLabel = new JLabel("archive: ");
 		parsedFieldsPanel.add(archiveLabel);
 
-		archiveText = new JTextField();
+		final JTextField archiveText = new JTextField();
 		archiveText.setEditable(false);
 		parsedFieldsPanel.add(archiveText);
 		archiveText.setColumns(14);
@@ -179,30 +180,52 @@ public class AppletRepackagerGUI {
 		appletHTMLLabelGrid.gridy = 0;
 		appletPanel.add(appletHTMLLabel, appletHTMLLabelGrid);
 
-		final JButton addPayloadButton = new JButton("Add Payload(s)");
+		final JButton addRemovePayloadButton = new JButton("Add Payload");
 		GridBagConstraints addPayloadButtonGrid = new GridBagConstraints();
 		addPayloadButtonGrid.fill = GridBagConstraints.HORIZONTAL;
 		addPayloadButtonGrid.insets = new Insets(0, 0, 5, 5);
 		addPayloadButtonGrid.gridx = 0;
 		addPayloadButtonGrid.gridy = 4;
-		appletPanel.add(addPayloadButton, addPayloadButtonGrid);
+		appletPanel.add(addRemovePayloadButton, addPayloadButtonGrid);
 
-		final JList<Payload> payloadList = new JList<Payload>();
+		
+		final DefaultListModel<File> payloads = new DefaultListModel<File>();
+		final JList<File> payloadList = new JList<File>(payloads);
 		payloadList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		payloadList.setBorder(null);
-		GridBagConstraints payloadListGrid = new GridBagConstraints();
-		payloadListGrid.insets = new Insets(0, 0, 5, 0);
-		payloadListGrid.fill = GridBagConstraints.BOTH;
-		payloadListGrid.gridx = 1;
-		payloadListGrid.gridy = 4;
-		appletPanel.add(payloadList, payloadListGrid);
+		JScrollPane payloadListScroll = new JScrollPane(payloadList);
+		payloadListScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		GridBagConstraints payloadListScrollGrid = new GridBagConstraints();
+		payloadListScrollGrid.insets = new Insets(0, 0, 5, 0);
+		payloadListScrollGrid.fill = GridBagConstraints.BOTH;
+		payloadListScrollGrid.gridx = 1;
+		payloadListScrollGrid.gridy = 4;
+		appletPanel.add(payloadListScroll, payloadListScrollGrid);
+		
+		JLabel wrapperLabel = new JLabel("Qualified Wrapper");
+		GridBagConstraints wrapperLabelGrid = new GridBagConstraints();
+		wrapperLabelGrid.insets = new Insets(0, 0, 5, 5);
+		wrapperLabelGrid.gridx = 0;
+		wrapperLabelGrid.gridy = 5;
+		appletPanel.add(wrapperLabel, wrapperLabelGrid);
+		
+		final JTextField wrapperText = new JTextField();
+		wrapperText.setEnabled(false);
+		wrapperText.setText("Wrapper.class");
+		GridBagConstraints wrapperTextGrid = new GridBagConstraints();
+		wrapperTextGrid.fill = GridBagConstraints.HORIZONTAL;
+		wrapperTextGrid.insets = new Insets(0, 0, 5, 0);
+		wrapperTextGrid.gridx = 1;
+		wrapperTextGrid.gridy = 5;
+		appletPanel.add(wrapperText, wrapperTextGrid);
+		wrapperText.setColumns(10);
 
 		final JButton jdkPathButton = new JButton("JDK Path");
 		GridBagConstraints jdkPathButtonGrid = new GridBagConstraints();
 		jdkPathButtonGrid.fill = GridBagConstraints.HORIZONTAL;
 		jdkPathButtonGrid.insets = new Insets(0, 0, 5, 5);
 		jdkPathButtonGrid.gridx = 0;
-		jdkPathButtonGrid.gridy = 5;
+		jdkPathButtonGrid.gridy = 6;
 		appletPanel.add(jdkPathButton, jdkPathButtonGrid);
 
 		final JLabel jdkPathLabel = new JLabel("Select JDK path...");
@@ -210,25 +233,27 @@ public class AppletRepackagerGUI {
 		jdkPathLabelGrid.fill = GridBagConstraints.HORIZONTAL;
 		jdkPathLabelGrid.insets = new Insets(0, 0, 5, 0);
 		jdkPathLabelGrid.gridx = 1;
-		jdkPathLabelGrid.gridy = 5;
+		jdkPathLabelGrid.gridy = 6;
 		appletPanel.add(jdkPathLabel, jdkPathLabelGrid);
 		
 		JLabel htmlPreviewLabel = new JLabel("HTML Preview");
 		GridBagConstraints htmlPreviewLabelGrid = new GridBagConstraints();
 		htmlPreviewLabelGrid.insets = new Insets(0, 0, 5, 5);
 		htmlPreviewLabelGrid.gridx = 0;
-		htmlPreviewLabelGrid.gridy = 6;
+		htmlPreviewLabelGrid.gridy = 7;
 		appletPanel.add(htmlPreviewLabel, htmlPreviewLabelGrid);
 		
 		final JTextArea outputAppletHTMLTextArea = new JTextArea();
+		outputAppletHTMLTextArea.setEditable(false);
 		outputAppletHTMLTextArea.setLineWrap(true);
 		JScrollPane outputAppletHTMLTextAreaScroll = new JScrollPane(outputAppletHTMLTextArea);
+		outputAppletHTMLTextAreaScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		outputAppletHTMLTextAreaScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		GridBagConstraints outputAppletHTMLScrollGrid = new GridBagConstraints();
 		outputAppletHTMLScrollGrid.insets = new Insets(0, 0, 5, 0);
 		outputAppletHTMLScrollGrid.fill = GridBagConstraints.BOTH;
 		outputAppletHTMLScrollGrid.gridx = 1;
-		outputAppletHTMLScrollGrid.gridy = 6;
+		outputAppletHTMLScrollGrid.gridy = 7;
 		appletPanel.add(outputAppletHTMLTextAreaScroll, outputAppletHTMLScrollGrid);
 
 		final JButton repackButton = new JButton("Repack Applet");
@@ -236,14 +261,14 @@ public class AppletRepackagerGUI {
 		repackButtonGrid.fill = GridBagConstraints.HORIZONTAL;
 		repackButtonGrid.insets = new Insets(0, 0, 0, 5);
 		repackButtonGrid.gridx = 0;
-		repackButtonGrid.gridy = 7;
+		repackButtonGrid.gridy = 8;
 		appletPanel.add(repackButton, repackButtonGrid);
 
 		final JLabel statusLabel = new JLabel("Status: Awaiting input...");
 		GridBagConstraints statusLabelGrid = new GridBagConstraints();
 		statusLabelGrid.fill = GridBagConstraints.HORIZONTAL;
 		statusLabelGrid.gridx = 1;
-		statusLabelGrid.gridy = 7;
+		statusLabelGrid.gridy = 8;
 		appletPanel.add(statusLabel, statusLabelGrid);
 
 		final JTabbedPane manifestTab = new JTabbedPane(JTabbedPane.TOP);
@@ -272,7 +297,7 @@ public class AppletRepackagerGUI {
 		            	}
 			            outputAppletLabel.setText(outputAppletFile.getAbsolutePath());
 		            }
-		            validateInputs(outputAppletHTMLTextArea, statusLabel);
+		            validateInputs(outputAppletHTMLTextArea, wrapperText, statusLabel);
 		        }
 			}
 		});
@@ -290,9 +315,37 @@ public class AppletRepackagerGUI {
 		        	}
 		            outputAppletFile = outputFile;
 		            outputAppletLabel.setText(outputAppletFile.getAbsolutePath());
-		            validateInputs(outputAppletHTMLTextArea, statusLabel);
+		            validateInputs(outputAppletHTMLTextArea, wrapperText, statusLabel);
 		        }
 			}			
+		});
+		
+		addRemovePayloadButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(payloadList.isSelectionEmpty()){
+					final JFileChooser fc = new JFileChooser();
+					fc.setFileFilter(new PayloadFileFilter());
+				    fc.setDialogTitle("Select Payload Source File");
+					int returnVal = fc.showOpenDialog(frame);
+			        if (returnVal == JFileChooser.APPROVE_OPTION) {
+			        	File selectedPayload = fc.getSelectedFile();
+			            payloads.addElement(selectedPayload);
+			        }
+				} else {
+					payloads.remove(payloadList.getSelectedIndex());
+				}
+				wrapperText.setEnabled(!payloads.isEmpty());
+			}
+		});
+		
+		payloadList.addListSelectionListener(new ListSelectionListener() {
+			public void valueChanged(ListSelectionEvent e) {
+				if(payloadList.isSelectionEmpty()){
+					addRemovePayloadButton.setText("Add Payload");
+				} else {
+					addRemovePayloadButton.setText("Remove Payload");
+				}
+			}
 		});
 
 		appletHTMLTextArea.getDocument().addDocumentListener(new DocumentListener() {
@@ -312,8 +365,7 @@ public class AppletRepackagerGUI {
 	        	parseApplet();
 	        }
 	        
-	        // TODO: could get really fancy with this an parse each applet
-	        //       for now it just always takes the first applet element
+	        // always just takes the first applet element
 	        private void parseApplet(){
 				String html = appletHTMLTextArea.getText();
 				Document doc = Jsoup.parseBodyFragment(html);
@@ -333,7 +385,7 @@ public class AppletRepackagerGUI {
 					} else {
 						archiveText.setText("");
 					}
-					validateInputs(outputAppletHTMLTextArea, statusLabel);
+					validateInputs(outputAppletHTMLTextArea, wrapperText, statusLabel);
 				} else {
 					codeText.setText("");
 					archiveText.setText("");
@@ -343,18 +395,21 @@ public class AppletRepackagerGUI {
 	    });
 	}
 	
-	private void validateInputs(final JTextArea outputAppletHTMLTextArea, final JLabel statusLabel) {
+	private void validateInputs(final JTextArea outputAppletHTMLTextArea, final JTextField wrapperText, final JLabel statusLabel) {
 		if(inputAppletFile != null && outputAppletFile != null){
-			if(appletElement.attr(ARCHIVE) != null){
-				for(String archive : appletElement.attr(ARCHIVE).split(",")){
-					if(archive.endsWith(inputAppletFile.getName())){
-						Element appletHtmlPreview = appletElement.clone();
-						appletHtmlPreview.attr(ARCHIVE, appletHtmlPreview.attr(ARCHIVE).replace(archive, outputAppletFile.getName()));
-						outputAppletHTMLTextArea.setText(appletHtmlPreview.toString());
-						statusLabel.setText("Status: Ready...");
-						return;
-					}
-				} 
+			if(!wrapperText.getText().equals("")){
+				if(appletElement != null && appletElement.attr(ARCHIVE) != null){
+					for(String archive : appletElement.attr(ARCHIVE).split(",")){
+						if(archive.endsWith(inputAppletFile.getName())){
+							Element appletHtmlPreview = appletElement.clone();
+							appletHtmlPreview.attr(ARCHIVE, appletHtmlPreview.attr(ARCHIVE).replace(archive, outputAppletFile.getName()));
+							appletHtmlPreview.attr(CODE, wrapperText.getText());
+							outputAppletHTMLTextArea.setText(appletHtmlPreview.toString());
+							statusLabel.setText("Status: Ready...");
+							return;
+						}
+					} 
+				}
 			}
 		}
 		outputAppletHTMLTextArea.setText("");
