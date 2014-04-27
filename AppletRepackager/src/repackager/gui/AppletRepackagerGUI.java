@@ -1,5 +1,6 @@
 package repackager.gui;
 
+import java.awt.Component;
 import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -7,7 +8,10 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.util.Map.Entry;
+import java.util.jar.Attributes;
 
+import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -20,6 +24,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
@@ -28,7 +33,8 @@ import javax.swing.event.ListSelectionListener;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import javax.swing.ScrollPaneConstants;
+
+import repackager.JarUtils;
 
 public class AppletRepackagerGUI {
 
@@ -270,13 +276,27 @@ public class AppletRepackagerGUI {
 		statusLabelGrid.gridx = 1;
 		statusLabelGrid.gridy = 8;
 		appletPanel.add(statusLabel, statusLabelGrid);
-
-		final JTabbedPane manifestTab = new JTabbedPane(JTabbedPane.TOP);
+		
+		final JPanel manifestTab = new JPanel();
 		tabbedPane.addTab("Manifest", null, manifestTab, null);
+		GridBagLayout gbl_manifestTab = new GridBagLayout();
+		gbl_manifestTab.columnWidths = new int[]{0, 0};
+		gbl_manifestTab.rowHeights = new int[]{0, 0};
+		gbl_manifestTab.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_manifestTab.rowWeights = new double[]{1.0, Double.MIN_VALUE};
+		manifestTab.setLayout(gbl_manifestTab);
 		
-		JTabbedPane codeSigningTab = new JTabbedPane(JTabbedPane.TOP);
+		final JPanel manifestContent = new JPanel();
+		GridBagConstraints manifestContentGrid = new GridBagConstraints();
+		manifestContentGrid.fill = GridBagConstraints.BOTH;
+		manifestContentGrid.gridx = 0;
+		manifestContentGrid.gridy = 0;
+		manifestTab.add(manifestContent, manifestContentGrid);
+		manifestContent.setLayout(new BoxLayout(manifestContent, BoxLayout.Y_AXIS));
+		
+		JPanel codeSigningTab = new JPanel();
 		tabbedPane.addTab("Code Signing", null, codeSigningTab, null);
-		
+
 		/////// gui events
 
 		inputAppletButton.addActionListener(new ActionListener() {
@@ -288,14 +308,48 @@ public class AppletRepackagerGUI {
 		        if (returnVal == JFileChooser.APPROVE_OPTION) {
 		            inputAppletFile = fc.getSelectedFile();
 		            inputAppletLabel.setText(inputAppletFile.getAbsolutePath());
-		            if(outputAppletFile == null){
-		            	String inputPath = inputAppletFile.getAbsolutePath();
-		            	if(inputPath.endsWith(JAR_EXTENSION)){
-		            		outputAppletFile = new File(inputPath.substring(0, inputPath.lastIndexOf(JAR_EXTENSION)) + DEFAULT_OUTPUT_SUFFIX);
-		            	} else {
-		            		outputAppletFile = new File(inputPath + DEFAULT_OUTPUT_SUFFIX);
+	            	String inputPath = inputAppletFile.getAbsolutePath();
+	            	if(inputPath.endsWith(JAR_EXTENSION)){
+	            		outputAppletFile = new File(inputPath.substring(0, inputPath.lastIndexOf(JAR_EXTENSION)) + DEFAULT_OUTPUT_SUFFIX);
+	            	} else {
+	            		outputAppletFile = new File(inputPath + DEFAULT_OUTPUT_SUFFIX);
+	            	}
+		            outputAppletLabel.setText(outputAppletFile.getAbsolutePath());
+		            
+		            manifestContent.removeAll();
+		            try {
+		            	Attributes attributes = JarUtils.getManifest(inputAppletFile).getMainAttributes();
+		            	for(Entry<Object,Object> attribute : attributes.entrySet()){
+		            		
+		            		JPanel attributePanel = new JPanel();
+		            		attributePanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+		            		manifestContent.add(attributePanel);
+		            		GridBagLayout attributePanelGrid = new GridBagLayout();
+		            		attributePanelGrid.columnWidths = new int[]{0, 0, 0};
+		            		attributePanelGrid.rowHeights = new int[]{0, 0};
+		            		attributePanelGrid.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+		            		attributePanelGrid.rowWeights = new double[]{0.0, Double.MIN_VALUE};
+		            		attributePanel.setLayout(attributePanelGrid);
+		            		
+		            		JLabel attributeLabel = new JLabel(attribute.getKey().toString() + ": ");
+		            		GridBagConstraints attributeLabelGrid = new GridBagConstraints();
+		            		attributeLabelGrid.insets = new Insets(0, 0, 0, 5);
+		            		attributeLabelGrid.anchor = GridBagConstraints.EAST;
+		            		attributeLabelGrid.gridx = 0;
+		            		attributeLabelGrid.gridy = 0;
+		            		attributePanel.add(attributeLabel, attributeLabelGrid);
+		            		
+		            		JTextField attributeTextField = new JTextField();
+		            		GridBagConstraints attributeTextFieldGrid = new GridBagConstraints();
+		            		attributeTextFieldGrid.fill = GridBagConstraints.HORIZONTAL;
+		            		attributeTextFieldGrid.gridx = 1;
+		            		attributeTextFieldGrid.gridy = 0;
+		            		attributePanel.add(attributeTextField, attributeTextFieldGrid);
+		            		attributeTextField.setColumns(10);
+		            		attributeTextField.setText(attribute.getValue().toString());
 		            	}
-			            outputAppletLabel.setText(outputAppletFile.getAbsolutePath());
+		            } catch (Exception ex){
+		            	ex.printStackTrace();
 		            }
 		            validateInputs(outputAppletHTMLTextArea, wrapperText, statusLabel);
 		        }
@@ -415,5 +469,4 @@ public class AppletRepackagerGUI {
 		outputAppletHTMLTextArea.setText("");
 		statusLabel.setText("Status: Awaiting input...");
 	}
-
 }
