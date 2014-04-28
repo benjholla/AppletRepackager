@@ -1,7 +1,9 @@
-package repackager;
+package repackager.cli;
 
 import java.io.File;
 import java.util.Scanner;
+
+import repackager.AppletRepackager;
 
 public class CLIRepacker {
 

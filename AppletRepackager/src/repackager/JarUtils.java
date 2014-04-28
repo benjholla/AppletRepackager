@@ -56,6 +56,12 @@ public class JarUtils {
 		return manifest;
 	}
 	
+	public static Manifest getManifestFromFile(File manifestFile) throws IOException {
+		Manifest manifest = new Manifest();
+		manifest.read(new FileInputStream(manifestFile));
+		return manifest;
+	}
+	
 	/**
 	 * Extracts a Jar file
 	 * 
