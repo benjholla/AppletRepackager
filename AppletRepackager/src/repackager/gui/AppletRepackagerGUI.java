@@ -8,9 +8,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
+import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -19,6 +21,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
@@ -45,7 +48,6 @@ public class AppletRepackagerGUI {
 	private Element appletElement = null;
 	
 	private Manifest originalManifest = null;
-	private Manifest preserveManifest = null;
 	private Manifest removeManifest = null;
 	private Manifest addManifest = null;
 	
@@ -287,39 +289,41 @@ public class AppletRepackagerGUI {
 		
 		GridBagLayout manifestTabGrid = new GridBagLayout();
 		manifestTabGrid.columnWidths = new int[]{0};
-		manifestTabGrid.rowHeights = new int[]{0, 0};
+		manifestTabGrid.rowHeights = new int[]{0, 0, 0};
 		manifestTabGrid.columnWeights = new double[]{1.0};
-		manifestTabGrid.rowWeights = new double[]{Double.MIN_VALUE, 1.0};
+		manifestTabGrid.rowWeights = new double[]{Double.MIN_VALUE, 0.0, 1.0};
 		manifestTab.setLayout(manifestTabGrid);
 		
-		JPanel panel = new JPanel();
-		GridBagConstraints gbc_panel = new GridBagConstraints();
-		gbc_panel.fill = GridBagConstraints.BOTH;
-		gbc_panel.gridx = 0;
-		gbc_panel.gridy = 0;
-		manifestTab.add(panel, gbc_panel);
+		JPanel manifestOptionsPanel = new JPanel();
+		GridBagConstraints manifestOptionsPanelGrid = new GridBagConstraints();
+		manifestOptionsPanelGrid.fill = GridBagConstraints.BOTH;
+		manifestOptionsPanelGrid.gridx = 0;
+		manifestOptionsPanelGrid.gridy = 0;
+		manifestTab.add(manifestOptionsPanel, manifestOptionsPanelGrid);
+		
+		ButtonGroup radioButtonGroup = new ButtonGroup();
+		final JRadioButton preserveExcessEntriesRadioButton = new JRadioButton("Preserve Excess Entries");
+		preserveExcessEntriesRadioButton.setSelected(true);
+		manifestOptionsPanel.add(preserveExcessEntriesRadioButton);
+		radioButtonGroup.add(preserveExcessEntriesRadioButton);
+		
+		final JRadioButton purgeExcessEntriesRadioButton = new JRadioButton("Purge Excess Entries");
+		manifestOptionsPanel.add(purgeExcessEntriesRadioButton);
+		radioButtonGroup.add(purgeExcessEntriesRadioButton);
+		
+		JPanel manifestOptionsPanel2 = new JPanel();
+		GridBagConstraints manifestOptionsPanel2Grid = new GridBagConstraints();
+		manifestOptionsPanel2Grid.insets = new Insets(0, 0, 5, 0);
+		manifestOptionsPanel2Grid.fill = GridBagConstraints.BOTH;
+		manifestOptionsPanel2Grid.gridx = 0;
+		manifestOptionsPanel2Grid.gridy = 1;
+		manifestTab.add(manifestOptionsPanel2, manifestOptionsPanel2Grid);
 		GridBagLayout gbl_panel = new GridBagLayout();
 		gbl_panel.columnWidths = new int[]{0, 0, 0};
 		gbl_panel.rowHeights = new int[]{0, 0, 0, 0, 0, 0};
 		gbl_panel.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
-		gbl_panel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		panel.setLayout(gbl_panel);
-		
-		JButton selectPreserveManifestButton = new JButton("Select Manifest");
-		GridBagConstraints selectPreserveManifestButtonGrid = new GridBagConstraints();
-		selectPreserveManifestButtonGrid.fill = GridBagConstraints.HORIZONTAL;
-		selectPreserveManifestButtonGrid.insets = new Insets(0, 0, 5, 5);
-		selectPreserveManifestButtonGrid.gridx = 0;
-		selectPreserveManifestButtonGrid.gridy = 0;
-		panel.add(selectPreserveManifestButton, selectPreserveManifestButtonGrid);
-		
-		final JLabel preserveManifestLabel = new JLabel("Select Manifest with related attributes to preserve...");
-		GridBagConstraints preserveManifestLabelGrid = new GridBagConstraints();
-		preserveManifestLabelGrid.anchor = GridBagConstraints.WEST;
-		preserveManifestLabelGrid.insets = new Insets(0, 0, 5, 0);
-		preserveManifestLabelGrid.gridx = 1;
-		preserveManifestLabelGrid.gridy = 0;
-		panel.add(preserveManifestLabel, preserveManifestLabelGrid);
+		gbl_panel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE};
+		manifestOptionsPanel2.setLayout(gbl_panel);
 		
 		JButton selectRemoveManifestButton = new JButton("Select Manifest");
 		GridBagConstraints selectRemoveManifestButtonGrid = new GridBagConstraints();
@@ -327,7 +331,7 @@ public class AppletRepackagerGUI {
 		selectRemoveManifestButtonGrid.insets = new Insets(0, 0, 5, 5);
 		selectRemoveManifestButtonGrid.gridx = 0;
 		selectRemoveManifestButtonGrid.gridy = 1;
-		panel.add(selectRemoveManifestButton, selectRemoveManifestButtonGrid);
+		manifestOptionsPanel2.add(selectRemoveManifestButton, selectRemoveManifestButtonGrid);
 		
 		final JLabel removeManifestLabel = new JLabel("Select Manifest with related attributes to remove...");
 		GridBagConstraints removeManifestLabelGrid = new GridBagConstraints();
@@ -335,52 +339,53 @@ public class AppletRepackagerGUI {
 		removeManifestLabelGrid.insets = new Insets(0, 0, 5, 0);
 		removeManifestLabelGrid.gridx = 1;
 		removeManifestLabelGrid.gridy = 1;
-		panel.add(removeManifestLabel, removeManifestLabelGrid);
+		manifestOptionsPanel2.add(removeManifestLabel, removeManifestLabelGrid);
 		
 		JButton selectAddManifestButton = new JButton("Select Manifest");
 		GridBagConstraints selectAddManifestButtonGrid = new GridBagConstraints();
+		selectAddManifestButtonGrid.fill = GridBagConstraints.HORIZONTAL;
 		selectAddManifestButtonGrid.insets = new Insets(0, 0, 5, 5);
-		selectAddManifestButtonGrid.anchor = GridBagConstraints.WEST;
 		selectAddManifestButtonGrid.gridx = 0;
-		selectAddManifestButtonGrid.gridy = 2;
-		panel.add(selectAddManifestButton, selectAddManifestButtonGrid);
+		selectAddManifestButtonGrid.gridy = 0;
+		manifestOptionsPanel2.add(selectAddManifestButton, selectAddManifestButtonGrid);
 		
 		final JLabel addManifestLabel = new JLabel("Select Manifest with attributes to add/overwrite...");
 		GridBagConstraints addManifestLabelGrid = new GridBagConstraints();
 		addManifestLabelGrid.insets = new Insets(0, 0, 5, 0);
 		addManifestLabelGrid.anchor = GridBagConstraints.WEST;
 		addManifestLabelGrid.gridx = 1;
-		addManifestLabelGrid.gridy = 2;
-		panel.add(addManifestLabel, addManifestLabelGrid);
+		addManifestLabelGrid.gridy = 0;
+		manifestOptionsPanel2.add(addManifestLabel, addManifestLabelGrid);
 		
 		JButton resetManifestButton = new JButton("Reset");
 		GridBagConstraints resetManifestButtonGrid = new GridBagConstraints();
 		resetManifestButtonGrid.fill = GridBagConstraints.HORIZONTAL;
 		resetManifestButtonGrid.insets = new Insets(0, 0, 5, 5);
 		resetManifestButtonGrid.gridx = 0;
-		resetManifestButtonGrid.gridy = 3;
-		panel.add(resetManifestButton, resetManifestButtonGrid);
+		resetManifestButtonGrid.gridy = 2;
+		manifestOptionsPanel2.add(resetManifestButton, resetManifestButtonGrid);
 		
 		JLabel filler = new JLabel("");
 		GridBagConstraints fillerGrid = new GridBagConstraints();
 		fillerGrid.fill = GridBagConstraints.HORIZONTAL;
 		fillerGrid.insets = new Insets(0, 0, 5, 0);
 		fillerGrid.gridx = 1;
-		fillerGrid.gridy = 3;
-		panel.add(filler, fillerGrid);
+		fillerGrid.gridy = 2;
+		manifestOptionsPanel2.add(filler, fillerGrid);
 		
 		JLabel previewManifestLabel = new JLabel("Manifest Preview");
 		GridBagConstraints previewManifestLabelGrid = new GridBagConstraints();
-		previewManifestLabelGrid.insets = new Insets(0, 0, 0, 5);
+		previewManifestLabelGrid.insets = new Insets(0, 0, 5, 5);
 		previewManifestLabelGrid.gridx = 0;
-		previewManifestLabelGrid.gridy = 4;
-		panel.add(previewManifestLabel, previewManifestLabelGrid);
+		previewManifestLabelGrid.gridy = 3;
+		manifestOptionsPanel2.add(previewManifestLabel, previewManifestLabelGrid);
 		
 		JLabel filler2 = new JLabel("");
 		GridBagConstraints filler2Grid = new GridBagConstraints();
+		filler2Grid.insets = new Insets(0, 0, 5, 0);
 		filler2Grid.gridx = 1;
-		filler2Grid.gridy = 4;
-		panel.add(filler2, filler2Grid);
+		filler2Grid.gridy = 3;
+		manifestOptionsPanel2.add(filler2, filler2Grid);
 		
 		final JTextArea manifestPreviewTextArea = new JTextArea();
 		manifestPreviewTextArea.setEditable(false);
@@ -392,7 +397,7 @@ public class AppletRepackagerGUI {
 		manifestPreviewScrollGrid.insets = new Insets(0, 0, 5, 0);
 		manifestPreviewScrollGrid.fill = GridBagConstraints.BOTH;
 		manifestPreviewScrollGrid.gridx = 0;
-		manifestPreviewScrollGrid.gridy = 1;
+		manifestPreviewScrollGrid.gridy = 2;
 		manifestTab.add(manifestPreviewScroll, manifestPreviewScrollGrid);
 		
 		JPanel codeSigningTab = new JPanel();
@@ -400,34 +405,25 @@ public class AppletRepackagerGUI {
 
 		/////// gui events
 		
+		preserveExcessEntriesRadioButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				previewOutputManifest(manifestPreviewTextArea, purgeExcessEntriesRadioButton.isSelected());
+			}
+		});
+		
+		purgeExcessEntriesRadioButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				previewOutputManifest(manifestPreviewTextArea, purgeExcessEntriesRadioButton.isSelected());
+			}
+		});
+		
 		resetManifestButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				preserveManifest = null;
-				preserveManifestLabel.setText("Select Manifest with related attributes to preserve...");
 				removeManifest = null;
 				removeManifestLabel.setText("Select Manifest with related attributes to remove...");
 				addManifest = null;
 				addManifestLabel.setText("Select Manifest with attributes to add/overwrite...");
-				previewOutputManifest(manifestPreviewTextArea);
-			}
-		});
-		
-		selectPreserveManifestButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				final JFileChooser fc = new JFileChooser();
-				fc.setFileFilter(new ManifestFileFilter());
-			    fc.setDialogTitle("Select Input Manifest");
-				int returnVal = fc.showOpenDialog(frame);
-		        if (returnVal == JFileChooser.APPROVE_OPTION) {
-		            File inputManifestFile = fc.getSelectedFile();
-		            try {
-						preserveManifest = JarUtils.getManifestFromFile(inputManifestFile);
-						previewOutputManifest(manifestPreviewTextArea);
-						preserveManifestLabel.setText("Preserve: " + inputManifestFile.getAbsolutePath());
-					} catch (Exception ex){
-						JOptionPane.showMessageDialog(frame, "Invalid Manifest");
-					}
-		        }
+				previewOutputManifest(manifestPreviewTextArea, purgeExcessEntriesRadioButton.isSelected());
 			}
 		});
 		
@@ -441,7 +437,7 @@ public class AppletRepackagerGUI {
 		            File inputManifestFile = fc.getSelectedFile();
 		            try {
 		            	removeManifest = JarUtils.getManifestFromFile(inputManifestFile);
-						previewOutputManifest(manifestPreviewTextArea);
+						previewOutputManifest(manifestPreviewTextArea, purgeExcessEntriesRadioButton.isSelected());
 						removeManifestLabel.setText("Remove: " + inputManifestFile.getAbsolutePath());
 					} catch (Exception ex){
 						JOptionPane.showMessageDialog(frame, "Invalid Manifest");
@@ -460,8 +456,8 @@ public class AppletRepackagerGUI {
 		            File inputManifestFile = fc.getSelectedFile();
 		            try {
 		            	addManifest = JarUtils.getManifestFromFile(inputManifestFile);
-						previewOutputManifest(manifestPreviewTextArea);
-						addManifestLabel.setText("Add: " + inputManifestFile.getAbsolutePath());
+						previewOutputManifest(manifestPreviewTextArea, purgeExcessEntriesRadioButton.isSelected());
+						addManifestLabel.setText("Overwrite: " + inputManifestFile.getAbsolutePath());
 					} catch (Exception ex){
 						JOptionPane.showMessageDialog(frame, "Invalid Manifest");
 					}
@@ -487,7 +483,7 @@ public class AppletRepackagerGUI {
 		            outputAppletLabel.setText(outputAppletFile.getAbsolutePath());
 		            try {
 		            	originalManifest = JarUtils.getManifest(inputAppletFile);
-		            	previewOutputManifest(manifestPreviewTextArea);
+		            	previewOutputManifest(manifestPreviewTextArea, purgeExcessEntriesRadioButton.isSelected());
 		            } catch (Exception ex){
 		            	ex.printStackTrace();
 		            }
@@ -589,25 +585,61 @@ public class AppletRepackagerGUI {
 	    });
 	}
 	
-	private Manifest calculateOutputManifest(){
+	private Manifest calculateOutputManifest(boolean purgeExcess){
 		Manifest manifest = null;
 		if(originalManifest != null){
-			manifest = originalManifest;
-			if(preserveManifest != null){
-				// TODO: Implement
-			}
-			if(removeManifest != null){
-				// TODO: Implement
-			}
+			manifest = new Manifest();
+			Attributes originalAttributes = originalManifest.getMainAttributes();
+
+			// add entries in the add list
 			if(addManifest != null){
-				// TODO: Implement
+				Attributes toAddAttributes = addManifest.getMainAttributes();
+				for(Entry<Object,Object> toAddAttribute : toAddAttributes.entrySet()){
+					String attributeKey = toAddAttribute.getKey().toString();
+					if(removeManifest != null){
+						// don't allow entries to be added that are in the remove list
+						if(!manifestContainsKey(attributeKey, removeManifest)){
+							manifest.getMainAttributes().putValue(attributeKey, toAddAttribute.getValue().toString());
+						}
+					} else {
+						manifest.getMainAttributes().putValue(attributeKey, toAddAttribute.getValue().toString());
+					}
+				}
+			}
+
+			if(!purgeExcess){
+				// copy over the entries that don't already exist
+				for(Entry<Object,Object> originalAttribute : originalAttributes.entrySet()){
+					String attributeKey = originalAttribute.getKey().toString();
+					if(!manifestContainsKey(attributeKey, manifest)){
+						if(removeManifest != null){
+							// don't allow entries to be added that are in the remove list
+							if(!manifestContainsKey(attributeKey, removeManifest)){
+								manifest.getMainAttributes().putValue(attributeKey, originalAttributes.getValue(attributeKey));
+							}
+						} else {
+							manifest.getMainAttributes().putValue(attributeKey, originalAttributes.getValue(attributeKey));
+						}
+					}
+				}
 			}
 		}
 		return manifest;
 	}
 	
-	private void previewOutputManifest(final JTextArea manifestPreviewTextArea) {
-		Manifest manifest = calculateOutputManifest();
+	// sort of a hack for object equivalence
+	private boolean manifestContainsKey(String key, Manifest manifest){
+		Set<Object> keySet = manifest.getMainAttributes().keySet();
+		for(Object k : keySet){
+			if(k.toString().equals(key)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private void previewOutputManifest(final JTextArea manifestPreviewTextArea, boolean purgeExcess) {
+		Manifest manifest = calculateOutputManifest(purgeExcess);
 		String manifestString = "";
 		if(manifest != null){
 			Attributes attributes = manifest.getMainAttributes();
