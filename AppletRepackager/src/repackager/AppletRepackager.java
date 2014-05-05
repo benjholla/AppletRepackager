@@ -47,6 +47,9 @@ public class AppletRepackager {
 		ArrayList<PayloadEntry> payloadEntries = new ArrayList<PayloadEntry>();
 		for(File payloadSource : payloads){
 			File payloadFile = new File(extractedJarDirectory.getAbsolutePath() + File.separatorChar + payloadSource.getName());
+			if(payloadFile.exists()){
+				payloadFile.delete();
+			}
 			Files.copy(payloadSource.toPath(), payloadFile.toPath());
 			PayloadEntry payloadEntry = new PayloadEntry(payloadFile, extractedJarDirectory);
 			payloadEntries.add(payloadEntry);

@@ -179,8 +179,8 @@ public class JarUtils {
 	}
 	
 	// TODO: finish implementing
-	public static void sign(File jarFile) throws IOException {
-
+	public static void sign(File jarFile, File keystore) throws IOException {
+		
 	}
 	
 	/**

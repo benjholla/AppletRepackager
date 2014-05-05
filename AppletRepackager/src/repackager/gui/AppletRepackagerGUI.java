@@ -37,6 +37,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
+import repackager.AppletRepackager;
 import repackager.JarUtils;
 
 public class AppletRepackagerGUI {
@@ -270,6 +271,23 @@ public class AppletRepackagerGUI {
 		appletPanel.add(outputAppletHTMLTextAreaScroll, outputAppletHTMLScrollGrid);
 
 		final JButton repackButton = new JButton("Repack Applet");
+		repackButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					File[] payloadList = new File[payloads.size()];
+					for(int i=0; i<payloads.getSize(); i++){
+						payloadList[i] = payloads.get(i);
+					}
+					String wrapperClassString = wrapperText.getText();
+					if(wrapperClassString.endsWith(".class")){
+						wrapperClassString = wrapperClassString.substring(0, wrapperClassString.length() - 6);
+					}
+					AppletRepackager.repackageJar(jdkPathLabel.getText(), codeText.getText(), wrapperClassString, inputAppletFile, outputAppletFile, payloadList);
+				} catch (Exception ex){
+					JOptionPane.showMessageDialog(frame, "Error repacking applet.\n\n" + ex.getMessage());
+				}
+			}
+		});
 		GridBagConstraints repackButtonGrid = new GridBagConstraints();
 		repackButtonGrid.fill = GridBagConstraints.HORIZONTAL;
 		repackButtonGrid.insets = new Insets(0, 0, 0, 5);
@@ -404,6 +422,19 @@ public class AppletRepackagerGUI {
 		tabbedPane.addTab("Code Signing", null, codeSigningTab, null);
 
 		/////// gui events
+		
+		jdkPathButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				final JFileChooser fc = new JFileChooser();
+			    fc.setDialogTitle("Select JDK Path");
+			    fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+			    fc.setAcceptAllFileFilterUsed(false);
+				int returnVal = fc.showOpenDialog(frame);
+		        if (returnVal == JFileChooser.APPROVE_OPTION) {
+		        	jdkPathLabel.setText(fc.getSelectedFile().getAbsolutePath());
+		        }
+			}
+		});
 		
 		preserveExcessEntriesRadioButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
