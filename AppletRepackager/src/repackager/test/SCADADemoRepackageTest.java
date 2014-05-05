@@ -3,6 +3,7 @@ package repackager.test;
 import java.io.File;
 
 import repackager.AppletRepackager;
+import repackager.JarUtils;
 
 public class SCADADemoRepackageTest {
 
@@ -31,7 +32,7 @@ public class SCADADemoRepackageTest {
 		File testPayloadSource = new File("C:\\Users\\Ben\\Desktop\\source\\TestPayload.java");
 		
 		// repackage the archive
-		AppletRepackager.repackageJar(jdkPath, qualifiedTargetClassName, qualifiedWrapperName, originalJar, repackedJar, testPayloadSource);
+		AppletRepackager.repackageJar(jdkPath, qualifiedTargetClassName, qualifiedWrapperName, originalJar, repackedJar, JarUtils.generateEmptyManifest(), testPayloadSource);
 		
 		System.out.println("The applet HTML element should be update to match:");
 		System.out.println("<applet code=\"" + qualifiedWrapperName + ".class\" archive=\"" + repackedJar.getName() + ",GlgCE.jar\" ...");

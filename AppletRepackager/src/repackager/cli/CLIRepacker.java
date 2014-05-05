@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Scanner;
 
 import repackager.AppletRepackager;
+import repackager.JarUtils;
 
 public class CLIRepacker {
 
@@ -31,7 +32,7 @@ public class CLIRepacker {
 		System.out.print("Please enter the payload:");
 		File testPayloadSource = new File(scanner.nextLine());
 
-		AppletRepackager.repackageJar(jdkPath, qualifiedTargetClassName, qualifiedWrapperName, originalJar, repackedJar, testPayloadSource);
+		AppletRepackager.repackageJar(jdkPath, qualifiedTargetClassName, qualifiedWrapperName, originalJar, repackedJar, JarUtils.generateEmptyManifest(), testPayloadSource);
 		
 		System.out.println("The applet HTML element should be update to match:");
 		System.out.println("<applet code=\"" + qualifiedWrapperName + ".class\" archive=\"" + repackedJar.getName() + "\" width=150 height=25></applet>");

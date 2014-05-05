@@ -271,23 +271,6 @@ public class AppletRepackagerGUI {
 		appletPanel.add(outputAppletHTMLTextAreaScroll, outputAppletHTMLScrollGrid);
 
 		final JButton repackButton = new JButton("Repack Applet");
-		repackButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				try {
-					File[] payloadList = new File[payloads.size()];
-					for(int i=0; i<payloads.getSize(); i++){
-						payloadList[i] = payloads.get(i);
-					}
-					String wrapperClassString = wrapperText.getText();
-					if(wrapperClassString.endsWith(".class")){
-						wrapperClassString = wrapperClassString.substring(0, wrapperClassString.length() - 6);
-					}
-					AppletRepackager.repackageJar(jdkPathLabel.getText(), codeText.getText(), wrapperClassString, inputAppletFile, outputAppletFile, payloadList);
-				} catch (Exception ex){
-					JOptionPane.showMessageDialog(frame, "Error repacking applet.\n\n" + ex.getMessage());
-				}
-			}
-		});
 		GridBagConstraints repackButtonGrid = new GridBagConstraints();
 		repackButtonGrid.fill = GridBagConstraints.HORIZONTAL;
 		repackButtonGrid.insets = new Insets(0, 0, 0, 5);
@@ -422,6 +405,26 @@ public class AppletRepackagerGUI {
 		tabbedPane.addTab("Code Signing", null, codeSigningTab, null);
 
 		/////// gui events
+		
+		repackButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					File[] payloadList = new File[payloads.size()];
+					for(int i=0; i<payloads.getSize(); i++){
+						payloadList[i] = payloads.get(i);
+					}
+					String wrapperClassString = wrapperText.getText();
+					if(wrapperClassString.endsWith(".class")){
+						wrapperClassString = wrapperClassString.substring(0, wrapperClassString.length() - 6);
+					}
+					Manifest manifest = calculateOutputManifest(purgeExcessEntriesRadioButton.isSelected());
+					AppletRepackager.repackageJar(jdkPathLabel.getText(), codeText.getText(), wrapperClassString, inputAppletFile, outputAppletFile, manifest, payloadList);
+					JOptionPane.showMessageDialog(frame, "Successfully repacked jar.");
+				} catch (Exception ex){
+					JOptionPane.showMessageDialog(frame, "Error repacking applet.\n\n" + ex.getMessage());
+				}
+			}
+		});
 		
 		jdkPathButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {

@@ -7,6 +7,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.jar.Manifest;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -19,7 +20,7 @@ public class AppletRepackager {
 
 	public static final String META_INF = "META-INF";
 
-	public static void repackageJar(String jdkPath, String code, String newCode, File archive, File newArchive, File... payloads) throws Exception {
+	public static void repackageJar(String jdkPath, String code, String newCode, File archive, File newArchive, Manifest manifest, File... payloads) throws Exception {
 		// extract jar and purge meta-inf data
 		File extractedJarDirectory = new File(archive.getAbsolutePath().replace(".jar", ""));
 		JarUtils.unjar(archive, extractedJarDirectory);
@@ -78,7 +79,7 @@ public class AppletRepackager {
 		// just lazily make a new manifest 
 		// (alternatively we could have cloned and edited the original manifest before purging)
 		// jar is unsigned
-		JarUtils.jar(extractedJarDirectory, newArchive, JarUtils.generateEmptyManifest());
+		JarUtils.jar(extractedJarDirectory, newArchive, manifest);
 		
 		// clean up the temp directory
 		JarUtils.delete(extractedJarDirectory);
