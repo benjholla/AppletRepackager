@@ -109,6 +109,10 @@ public class AppletRepackager {
 	public static void generateWrapper(String wrapperClassName, String wrapperPackageName, String qualifiedTargetClassName, PayloadEntry payloadInterface, ArrayList<PayloadEntry> payloads, File outputFile) throws Exception {
 		FileWriter fw = new FileWriter(outputFile);
 		
+		if(qualifiedTargetClassName.endsWith(".class")){
+			qualifiedTargetClassName = qualifiedTargetClassName.substring(0, qualifiedTargetClassName.length() - 6);
+		}
+		
 		if(!wrapperPackageName.equals("")){
 			fw.write("package " + wrapperPackageName +";\n\n");
 		}
@@ -142,12 +146,12 @@ public class AppletRepackager {
 		fw.write("		try {\n");
 		fw.write("			Class<?> c = Class.forName(\"" + qualifiedTargetClassName + "\");\n");
 		fw.write("			this.applet = (Applet) c.newInstance();\n");
-		fw.write("		} catch (Exception e){}\n");
+		fw.write("		} catch (Exception e){e.printStackTrace();}\n");
 		for(PayloadEntry payload : payloads){
 			fw.write("		try {\n");
 			fw.write("			Class<?> c = Class.forName(\"" + payload.getQualifiedClassName() + "\");\n");
 			fw.write("			" + payload.getVariableName() + " = (Payload) c.newInstance();\n");
-			fw.write("		} catch (Exception e){}\n");
+			fw.write("		} catch (Exception e){e.printStackTrace();}\n");
 		}
 		for(PayloadEntry payload : payloads){
 			fw.write("		" + payload.getVariableName() + ".preInitPayload();\n");
