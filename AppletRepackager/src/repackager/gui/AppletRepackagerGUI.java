@@ -6,6 +6,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -15,6 +17,7 @@ import java.util.jar.Manifest;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -48,9 +51,14 @@ public class AppletRepackagerGUI {
 	private File outputAppletFile = null;
 	private Element appletElement = null;
 	
+	private File jdkPath = null;
+	
 	private Manifest originalManifest = null;
 	private Manifest removeManifest = null;
 	private Manifest addManifest = null;
+
+	private File keystore = null;
+	private String alias = null;
 	
 	private static final String APPLET = "applet";
 	private static final String ARCHIVE = "archive";
@@ -319,12 +327,12 @@ public class AppletRepackagerGUI {
 		manifestOptionsPanel2Grid.gridx = 0;
 		manifestOptionsPanel2Grid.gridy = 1;
 		manifestTab.add(manifestOptionsPanel2, manifestOptionsPanel2Grid);
-		GridBagLayout gbl_panel = new GridBagLayout();
-		gbl_panel.columnWidths = new int[]{0, 0, 0};
-		gbl_panel.rowHeights = new int[]{0, 0, 0, 0, 0, 0};
-		gbl_panel.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
-		gbl_panel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE};
-		manifestOptionsPanel2.setLayout(gbl_panel);
+		GridBagLayout manifestOptionsInnerPanelGrid = new GridBagLayout();
+		manifestOptionsInnerPanelGrid.columnWidths = new int[]{0, 0, 0};
+		manifestOptionsInnerPanelGrid.rowHeights = new int[]{0, 0, 0, 0, 0, 0};
+		manifestOptionsInnerPanelGrid.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+		manifestOptionsInnerPanelGrid.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE};
+		manifestOptionsPanel2.setLayout(manifestOptionsInnerPanelGrid);
 		
 		JButton selectRemoveManifestButton = new JButton("Select Manifest");
 		GridBagConstraints selectRemoveManifestButtonGrid = new GridBagConstraints();
@@ -403,11 +411,144 @@ public class AppletRepackagerGUI {
 		
 		JPanel codeSigningTab = new JPanel();
 		tabbedPane.addTab("Code Signing", null, codeSigningTab, null);
+		
+		GridBagLayout codeSigningTabGrid = new GridBagLayout();
+		codeSigningTabGrid.columnWidths = new int[]{0, 0};
+		codeSigningTabGrid.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0};
+		codeSigningTabGrid.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		codeSigningTabGrid.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		codeSigningTab.setLayout(codeSigningTabGrid);
+
+		final JCheckBox signAppletCheckbox = new JCheckBox("Sign Applet");
+		GridBagConstraints signAppletCheckboxGrid = new GridBagConstraints();
+		signAppletCheckboxGrid.insets = new Insets(0, 0, 5, 0);
+		signAppletCheckboxGrid.anchor = GridBagConstraints.WEST;
+		signAppletCheckboxGrid.gridx = 0;
+		signAppletCheckboxGrid.gridy = 0;
+		codeSigningTab.add(signAppletCheckbox, signAppletCheckboxGrid);
+		
+		JPanel signingOptionsPanel = new JPanel();
+		GridBagConstraints signingOptionsPanelGrid = new GridBagConstraints();
+		signingOptionsPanelGrid.insets = new Insets(0, 0, 5, 0);
+		signingOptionsPanelGrid.fill = GridBagConstraints.BOTH;
+		signingOptionsPanelGrid.gridx = 0;
+		signingOptionsPanelGrid.gridy = 1;
+		codeSigningTab.add(signingOptionsPanel, signingOptionsPanelGrid);
+		
+		GridBagLayout signingOptionsKeystorePanelGrid = new GridBagLayout();
+		signingOptionsKeystorePanelGrid.columnWidths = new int[]{0, 0, 0};
+		signingOptionsKeystorePanelGrid.rowHeights = new int[]{0, 0, 0};
+		signingOptionsKeystorePanelGrid.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+		signingOptionsKeystorePanelGrid.rowWeights = new double[]{0.0, 0.0, Double.MIN_VALUE};
+		signingOptionsPanel.setLayout(signingOptionsKeystorePanelGrid);
+		
+		final JButton keystoreButton = new JButton("Select Keystore");
+		keystoreButton.setEnabled(false);
+		GridBagConstraints keystoreButtonGrid = new GridBagConstraints();
+		keystoreButtonGrid.fill = GridBagConstraints.HORIZONTAL;
+		keystoreButtonGrid.insets = new Insets(0, 0, 5, 5);
+		keystoreButtonGrid.gridx = 0;
+		keystoreButtonGrid.gridy = 0;
+		signingOptionsPanel.add(keystoreButton, keystoreButtonGrid);
+		
+		final JLabel keystoreLabel = new JLabel("Select Keystore Location...");
+		keystoreLabel.setEnabled(false);
+		GridBagConstraints keystoreLabelGrid = new GridBagConstraints();
+		keystoreLabelGrid.anchor = GridBagConstraints.WEST;
+		keystoreLabelGrid.insets = new Insets(0, 0, 5, 0);
+		keystoreLabelGrid.gridx = 1;
+		keystoreLabelGrid.gridy = 0;
+		signingOptionsPanel.add(keystoreLabel, keystoreLabelGrid);
+		
+		final JLabel aliasLabel = new JLabel("Private Key Alias: ");
+		aliasLabel.setEnabled(false);
+		GridBagConstraints aliasLabelGrid = new GridBagConstraints();
+		aliasLabelGrid.insets = new Insets(0, 0, 0, 5);
+		aliasLabelGrid.gridx = 0;
+		aliasLabelGrid.gridy = 1;
+		signingOptionsPanel.add(aliasLabel, aliasLabelGrid);
+		
+		final JTextField aliasTextField = new JTextField();
+		GridBagConstraints aliasTextFieldGrid = new GridBagConstraints();
+		aliasTextFieldGrid.fill = GridBagConstraints.HORIZONTAL;
+		aliasTextFieldGrid.gridx = 1;
+		aliasTextFieldGrid.gridy = 1;
+		signingOptionsPanel.add(aliasTextField, aliasTextFieldGrid);
+		aliasTextField.setColumns(10);
+		
+		final JCheckBox customCommandCheckbox = new JCheckBox("Use custom command");
+		customCommandCheckbox.setEnabled(false);
+		GridBagConstraints customCommandCheckboxGrid = new GridBagConstraints();
+		customCommandCheckboxGrid.anchor = GridBagConstraints.WEST;
+		customCommandCheckboxGrid.insets = new Insets(0, 0, 5, 0);
+		customCommandCheckboxGrid.gridx = 0;
+		customCommandCheckboxGrid.gridy = 2;
+		codeSigningTab.add(customCommandCheckbox, customCommandCheckboxGrid);
+		
+		final JLabel commandLabel = new JLabel("Command:");
+		commandLabel.setEnabled(false);
+		GridBagConstraints commandLabelGrid = new GridBagConstraints();
+		commandLabelGrid.anchor = GridBagConstraints.WEST;
+		commandLabelGrid.insets = new Insets(0, 0, 5, 0);
+		commandLabelGrid.gridx = 0;
+		commandLabelGrid.gridy = 3;
+		codeSigningTab.add(commandLabel, commandLabelGrid);
+		
+		final JTextField commandField = new JTextField();
+		commandField.setEnabled(false);
+		commandField.setText(generateSigningCommand(null, null, null));
+		commandField.setEditable(false);
+		GridBagConstraints commandFieldGrid = new GridBagConstraints();
+		commandFieldGrid.insets = new Insets(0, 0, 5, 0);
+		commandFieldGrid.fill = GridBagConstraints.HORIZONTAL;
+		commandFieldGrid.gridx = 0;
+		commandFieldGrid.gridy = 4;
+		codeSigningTab.add(commandField, commandFieldGrid);
+		commandField.setColumns(10);
 
 		/////// gui events
 		
 		repackButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				
+				// do some sanity checks
+				if(codeLabel.getText().equals("")){
+					JOptionPane.showMessageDialog(frame, "Error: Applet \"code\" HTML attribute is not specified.");
+					return;
+				}
+				
+				if(archiveLabel.getText().equals("")){
+					JOptionPane.showMessageDialog(frame, "Error: Applet \"archive\" HTML attribute is not specified.");
+					return;
+				}
+				
+				if(inputAppletFile == null){
+					JOptionPane.showMessageDialog(frame, "Error: Input applet file is not specified.");
+					return;
+				}
+				
+				if(outputAppletFile == null){
+					JOptionPane.showMessageDialog(frame, "Error: Output applet file is not specified.");
+					return;
+				}
+				
+				if(jdkPath == null){
+					JOptionPane.showMessageDialog(frame, "Error: JDK path is not specified.");
+					return;
+				}
+
+				if(signAppletCheckbox.isSelected()){
+					if(keystore == null){
+						JOptionPane.showMessageDialog(frame, "Error: Applet signing is enabled and keystore is not specified.");
+						return;
+					}
+					if(alias == null || alias.equals("")){
+						JOptionPane.showMessageDialog(frame, "Error: Applet signing is enabled and the private key alias is not specified.");
+						return;
+					}
+				}
+
+				// repack the applet
 				try {
 					File[] payloadList = new File[payloads.size()];
 					for(int i=0; i<payloads.getSize(); i++){
@@ -419,9 +560,13 @@ public class AppletRepackagerGUI {
 					}
 					Manifest manifest = calculateOutputManifest(purgeExcessEntriesRadioButton.isSelected());
 					AppletRepackager.repackageJar(jdkPathLabel.getText(), codeText.getText(), wrapperClassString, inputAppletFile, outputAppletFile, manifest, payloadList);
+					
+					// TODO: implement: sign jar
+					System.out.println(commandField.getText());
+					
 					JOptionPane.showMessageDialog(frame, "Successfully repacked jar.");
 				} catch (Exception ex){
-					JOptionPane.showMessageDialog(frame, "Error repacking applet.\n\n" + ex.getMessage());
+					JOptionPane.showMessageDialog(frame, "Error: Failed to repack applet.\n\n" + ex.getMessage());
 				}
 			}
 		});
@@ -434,8 +579,56 @@ public class AppletRepackagerGUI {
 			    fc.setAcceptAllFileFilterUsed(false);
 				int returnVal = fc.showOpenDialog(frame);
 		        if (returnVal == JFileChooser.APPROVE_OPTION) {
-		        	jdkPathLabel.setText(fc.getSelectedFile().getAbsolutePath());
+		        	jdkPath = fc.getSelectedFile();
+		        	jdkPathLabel.setText(jdkPath.getAbsolutePath());
 		        }
+			}
+		});
+		
+		signAppletCheckbox.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				boolean signingEnabled = signAppletCheckbox.isSelected();
+				commandLabel.setEnabled(signingEnabled);
+				customCommandCheckbox.setEnabled(signingEnabled);
+				commandField.setEnabled(signingEnabled);
+				if(!customCommandCheckbox.isSelected()){
+					keystoreButton.setEnabled(signingEnabled);
+					keystoreLabel.setEnabled(signingEnabled);
+					aliasTextField.setEnabled(signingEnabled);
+					aliasLabel.setEnabled(signingEnabled);
+				}
+			}
+		});
+		
+		customCommandCheckbox.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				boolean customCommandEnabled = customCommandCheckbox.isSelected();
+				keystoreButton.setEnabled(!customCommandEnabled);
+				keystoreLabel.setEnabled(!customCommandEnabled);
+				aliasTextField.setEnabled(!customCommandEnabled);
+				aliasLabel.setEnabled(!customCommandEnabled);
+				commandField.setEditable(customCommandEnabled);
+				updateSigningCommand(customCommandCheckbox, commandField);
+			}
+		});
+		
+		keystoreButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				final JFileChooser fc = new JFileChooser();
+			    fc.setDialogTitle("Select Keystore");
+				int returnVal = fc.showOpenDialog(frame);
+		        if (returnVal == JFileChooser.APPROVE_OPTION) {
+		            keystore = fc.getSelectedFile();
+		        }
+				updateSigningCommand(customCommandCheckbox, commandField);
+			}
+		});
+
+		aliasTextField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				alias = aliasTextField.getText();
+				updateSigningCommand(customCommandCheckbox, commandField);
 			}
 		});
 		
@@ -522,6 +715,7 @@ public class AppletRepackagerGUI {
 		            	ex.printStackTrace();
 		            }
 		            validateInputs(outputAppletHTMLTextArea, wrapperText, statusLabel);
+		            updateSigningCommand(customCommandCheckbox, commandField);
 		        }
 			}
 		});
@@ -540,8 +734,9 @@ public class AppletRepackagerGUI {
 		            outputAppletFile = outputFile;
 		            outputAppletLabel.setText(outputAppletFile.getAbsolutePath());
 		            validateInputs(outputAppletHTMLTextArea, wrapperText, statusLabel);
+		            updateSigningCommand(customCommandCheckbox, commandField);
 		        }
-			}			
+			}		
 		});
 		
 		addRemovePayloadButton.addActionListener(new ActionListener() {
@@ -703,5 +898,26 @@ public class AppletRepackagerGUI {
 		}
 		outputAppletHTMLTextArea.setText("");
 		statusLabel.setText("Status: Awaiting input...");
+	}
+	
+	private void updateSigningCommand(final JCheckBox customCommandCheckbox, final JTextField commandField) {
+		if(!customCommandCheckbox.isSelected()){
+			commandField.setText(generateSigningCommand(outputAppletFile, keystore, alias));
+		}
+	}
+	
+	private String generateSigningCommand(File applet, File keystore, String alias){
+		// TODO: need to pass keystore password via command line
+		String command = "jarsigner -keystore <keystore> <applet> <alias>";
+		if(applet != null){
+			command = command.replaceAll("<applet>", "\"" + applet.getAbsolutePath() + "\"");
+		}
+		if(keystore != null){
+			command = command.replaceAll("<keystore>", "\"" + keystore.getAbsolutePath() + "\"");
+		}
+		if(alias != null && !alias.equals("")){
+			command = command.replaceAll("<alias>", alias);
+		}
+		return command;
 	}
 }

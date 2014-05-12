@@ -67,22 +67,22 @@ public class AppletRepackager {
 			sourceFiles.add(payloadEntry.getSourceFile());
 		}
 		sourceFiles.add(wrapperFile);
-		AppletRepackager.compileSourceFiles(sourceFiles, jdkPath);
 		
-		// clean up the source files
-		payloadInterfaceEntry.getSourceFile().delete();
-		wrapperFile.delete();
-		for(PayloadEntry payload : payloadEntries){
-			payload.getSourceFile().delete();
+		try {
+			AppletRepackager.compileSourceFiles(sourceFiles, jdkPath);
+			
+			// clean up the source files
+			payloadInterfaceEntry.getSourceFile().delete();
+			wrapperFile.delete();
+			for(PayloadEntry payload : payloadEntries){
+				payload.getSourceFile().delete();
+			}
+			
+			JarUtils.jar(extractedJarDirectory, newArchive, manifest);
+		} finally {			
+			// clean up the temp directory
+			JarUtils.delete(extractedJarDirectory);
 		}
-		
-		// just lazily make a new manifest 
-		// (alternatively we could have cloned and edited the original manifest before purging)
-		// jar is unsigned
-		JarUtils.jar(extractedJarDirectory, newArchive, manifest);
-		
-		// clean up the temp directory
-		JarUtils.delete(extractedJarDirectory);
 	}
 	
 	public static void generatePayloadInterface(PayloadEntry payloadInterface, File outputFile) throws Exception {
