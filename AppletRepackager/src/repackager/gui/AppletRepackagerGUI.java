@@ -58,6 +58,7 @@ public class AppletRepackagerGUI {
 	private Manifest addManifest = null;
 
 	private File keystore = null;
+	private String keystorePassword = null;
 	private String alias = null;
 	
 	private static final String APPLET = "applet";
@@ -66,7 +67,7 @@ public class AppletRepackagerGUI {
 	
 	private static final String JAR_EXTENSION = ".jar";
 	private static final String DEFAULT_OUTPUT_SUFFIX = "_repacked.jar";
-	
+
 	/**
 	 * Launch the application.
 	 */
@@ -437,9 +438,9 @@ public class AppletRepackagerGUI {
 		
 		GridBagLayout signingOptionsKeystorePanelGrid = new GridBagLayout();
 		signingOptionsKeystorePanelGrid.columnWidths = new int[]{0, 0, 0};
-		signingOptionsKeystorePanelGrid.rowHeights = new int[]{0, 0, 0};
+		signingOptionsKeystorePanelGrid.rowHeights = new int[]{0, 0, 0, 0};
 		signingOptionsKeystorePanelGrid.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
-		signingOptionsKeystorePanelGrid.rowWeights = new double[]{0.0, 0.0, Double.MIN_VALUE};
+		signingOptionsKeystorePanelGrid.rowWeights = new double[]{0.0, 0.0, 0.0, Double.MIN_VALUE};
 		signingOptionsPanel.setLayout(signingOptionsKeystorePanelGrid);
 		
 		final JButton keystoreButton = new JButton("Select Keystore");
@@ -460,19 +461,39 @@ public class AppletRepackagerGUI {
 		keystoreLabelGrid.gridy = 0;
 		signingOptionsPanel.add(keystoreLabel, keystoreLabelGrid);
 		
+		final JLabel keystorePasswordLabel = new JLabel("Keystore Password:");
+		keystorePasswordLabel.setEnabled(false);
+		GridBagConstraints keystorePasswordLabelGrid = new GridBagConstraints();
+		keystorePasswordLabelGrid.anchor = GridBagConstraints.EAST;
+		keystorePasswordLabelGrid.insets = new Insets(0, 0, 5, 5);
+		keystorePasswordLabelGrid.gridx = 0;
+		keystorePasswordLabelGrid.gridy = 1;
+		signingOptionsPanel.add(keystorePasswordLabel, keystorePasswordLabelGrid);
+		
+		final JTextField keystorePasswordField = new JTextField();
+		keystorePasswordField.setEditable(true);
+		GridBagConstraints keystorePasswordGrid = new GridBagConstraints();
+		keystorePasswordGrid.insets = new Insets(0, 0, 5, 0);
+		keystorePasswordGrid.fill = GridBagConstraints.HORIZONTAL;
+		keystorePasswordGrid.gridx = 1;
+		keystorePasswordGrid.gridy = 1;
+		signingOptionsPanel.add(keystorePasswordField, keystorePasswordGrid);
+		keystorePasswordField.setColumns(10);
+		
 		final JLabel aliasLabel = new JLabel("Private Key Alias: ");
 		aliasLabel.setEnabled(false);
 		GridBagConstraints aliasLabelGrid = new GridBagConstraints();
+		aliasLabelGrid.anchor = GridBagConstraints.EAST;
 		aliasLabelGrid.insets = new Insets(0, 0, 0, 5);
 		aliasLabelGrid.gridx = 0;
-		aliasLabelGrid.gridy = 1;
+		aliasLabelGrid.gridy = 2;
 		signingOptionsPanel.add(aliasLabel, aliasLabelGrid);
 		
 		final JTextField aliasTextField = new JTextField();
 		GridBagConstraints aliasTextFieldGrid = new GridBagConstraints();
 		aliasTextFieldGrid.fill = GridBagConstraints.HORIZONTAL;
 		aliasTextFieldGrid.gridx = 1;
-		aliasTextFieldGrid.gridy = 1;
+		aliasTextFieldGrid.gridy = 2;
 		signingOptionsPanel.add(aliasTextField, aliasTextFieldGrid);
 		aliasTextField.setColumns(10);
 		
@@ -496,7 +517,7 @@ public class AppletRepackagerGUI {
 		
 		final JTextField commandField = new JTextField();
 		commandField.setEnabled(false);
-		commandField.setText(generateSigningCommand(null, null, null));
+		commandField.setText(generateSigningCommand(null, null, null, null));
 		commandField.setEditable(false);
 		GridBagConstraints commandFieldGrid = new GridBagConstraints();
 		commandFieldGrid.insets = new Insets(0, 0, 5, 0);
@@ -542,6 +563,10 @@ public class AppletRepackagerGUI {
 						JOptionPane.showMessageDialog(frame, "Error: Applet signing is enabled and keystore is not specified.");
 						return;
 					}
+					if(keystorePassword == null || keystorePassword.equals("")){
+						JOptionPane.showMessageDialog(frame, "Error: Applet signing is enabled and the keystore password is not specified.");
+						return;
+					}
 					if(alias == null || alias.equals("")){
 						JOptionPane.showMessageDialog(frame, "Error: Applet signing is enabled and the private key alias is not specified.");
 						return;
@@ -561,10 +586,14 @@ public class AppletRepackagerGUI {
 					Manifest manifest = calculateOutputManifest(purgeExcessEntriesRadioButton.isSelected());
 					AppletRepackager.repackageJar(jdkPathLabel.getText(), codeText.getText(), wrapperClassString, inputAppletFile, outputAppletFile, manifest, payloadList);
 					
-					// TODO: implement: sign jar
-					System.out.println(commandField.getText());
-					
-					JOptionPane.showMessageDialog(frame, "Successfully repacked jar.");
+					// sign the applet with the provided command
+					if(signAppletCheckbox.isSelected()) {
+						Process p = Runtime.getRuntime().exec(commandField.getText());
+						p.waitFor();
+						JOptionPane.showMessageDialog(frame, "Successfully repacked and signed jar.");
+					} else {
+						JOptionPane.showMessageDialog(frame, "Successfully repacked jar.");
+					}
 				} catch (Exception ex){
 					JOptionPane.showMessageDialog(frame, "Error: Failed to repack applet.\n\n" + ex.getMessage());
 				}
@@ -594,6 +623,8 @@ public class AppletRepackagerGUI {
 				if(!customCommandCheckbox.isSelected()){
 					keystoreButton.setEnabled(signingEnabled);
 					keystoreLabel.setEnabled(signingEnabled);
+					keystorePasswordField.setEnabled(signingEnabled);
+					keystorePasswordLabel.setEnabled(signingEnabled);
 					aliasTextField.setEnabled(signingEnabled);
 					aliasLabel.setEnabled(signingEnabled);
 				}
@@ -605,6 +636,8 @@ public class AppletRepackagerGUI {
 				boolean customCommandEnabled = customCommandCheckbox.isSelected();
 				keystoreButton.setEnabled(!customCommandEnabled);
 				keystoreLabel.setEnabled(!customCommandEnabled);
+				keystorePasswordField.setEnabled(!customCommandEnabled);
+				keystorePasswordLabel.setEnabled(!customCommandEnabled);
 				aliasTextField.setEnabled(!customCommandEnabled);
 				aliasLabel.setEnabled(!customCommandEnabled);
 				commandField.setEditable(customCommandEnabled);
@@ -619,7 +652,16 @@ public class AppletRepackagerGUI {
 				int returnVal = fc.showOpenDialog(frame);
 		        if (returnVal == JFileChooser.APPROVE_OPTION) {
 		            keystore = fc.getSelectedFile();
+		            keystoreLabel.setText(keystore.getAbsolutePath());
 		        }
+				updateSigningCommand(customCommandCheckbox, commandField);
+			}
+		});
+		
+		keystorePasswordField.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				keystorePassword = keystorePasswordField.getText();
 				updateSigningCommand(customCommandCheckbox, commandField);
 			}
 		});
@@ -902,18 +944,20 @@ public class AppletRepackagerGUI {
 	
 	private void updateSigningCommand(final JCheckBox customCommandCheckbox, final JTextField commandField) {
 		if(!customCommandCheckbox.isSelected()){
-			commandField.setText(generateSigningCommand(outputAppletFile, keystore, alias));
+			commandField.setText(generateSigningCommand(outputAppletFile, keystore, keystorePassword, alias));
 		}
 	}
 	
-	private String generateSigningCommand(File applet, File keystore, String alias){
-		// TODO: need to pass keystore password via command line
-		String command = "jarsigner -keystore <keystore> <applet> <alias>";
+	private String generateSigningCommand(File applet, File keystore, String keystorePassword, String alias){
+		String command = "jarsigner -keystore <keystore> -storepass <keystore-password> <applet> <alias>";
 		if(applet != null){
 			command = command.replaceAll("<applet>", "\"" + applet.getAbsolutePath() + "\"");
 		}
 		if(keystore != null){
 			command = command.replaceAll("<keystore>", "\"" + keystore.getAbsolutePath() + "\"");
+		}
+		if(keystorePassword != null && !keystorePassword.equals("")){
+			command = command.replaceAll("<keystore-password>", "\"" + keystorePassword + "\"");
 		}
 		if(alias != null && !alias.equals("")){
 			command = command.replaceAll("<alias>", alias);
